@@ -1,0 +1,9 @@
+{
+  "name": "Demolition Walkthrough",
+  "short_name": "DemoWalk",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#E65C00",
+  "icons": []
+}
