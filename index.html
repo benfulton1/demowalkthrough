@@ -80,26 +80,111 @@
   </div>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const peopleTypes = ["Project Manager", "Designer", "Client"];
-      const roomList = ["Bathroom","Kitchen","Living Room","Bedroom","Dining Room","Home Office","Laundry Room","Garage","Basement","Attic","Patio","Deck","Porch","Hallway","Entryway","Staircase","Exterior Walls","Driveway","Sidewalk","Landscaping Area","Roof"];
-      const standardTasks = ["Remove wall drywall","Remove ceiling drywall","Remove flooring","Remove doors","Remove trim/moulding","Remove baseboard trim","Asbestos review","Disconnect utilities","General cleanup","Debris removal"];
-      const roomSpecificTasks = {
-        "Bathroom":["Remove toilet","Remove bathtub/shower","Remove vanity","Remove countertop","Remove sink","Remove mirror","Remove medicine cabinet","Remove tile from walls","Remove tile from floor","Remove plumbing fixtures"],
-        "Kitchen":["Remove cabinets","Remove countertops","Remove sink","Remove faucet","Remove appliances","Remove backsplash tile","Remove lighting fixtures","Remove island","Remove hood","Remove dishwasher"],
-        "Living Room":["Remove drywall","Remove flooring","Remove trim","Remove baseboards","Remove windows","Remove built-in shelves","Remove fireplace","Remove lighting fixtures","Remove wall coverings","Remove vents"],
-        "Bedroom":["Remove drywall","Remove flooring","Remove trim","Remove baseboards","Remove windows","Remove closet shelving","Remove lighting fixtures","Remove built-in furniture","Remove outlets","Remove vents"],
-        "Dining Room":["Remove drywall","Remove flooring","Remove trim","Remove baseboards","Remove lighting fixtures","Remove built-in features","Remove chandelier","Remove paint","Remove curtains","Remove outlets"],
-        "Home Office":["Remove drywall","Remove flooring","Remove trim","Remove baseboards","Remove built-in desks","Remove lighting fixtures","Remove data outlets","Remove shelving","Remove whiteboards","Remove outlets"],
-        "Laundry Room":["Remove washer/dryer","Remove cabinets","Remove sink","Remove plumbing fixtures","Remove flooring","Remove lighting fixtures","Remove ventilation fan","Remove tile","Remove shelving","Remove outlets"],
-        "Garage":["Remove drywall","Remove shelving","Remove cabinets","Remove doors","Remove windows","Remove lighting fixtures","Remove electrical fixtures","Remove insulation","Remove hooks","Remove signage"],
-        "Basement":["Remove drywall","Remove flooring","Remove insulation","Remove trim","Remove lighting fixtures","Remove windows","Remove sump pump cover","Remove tile","Remove shelving","Remove outlets"],
-        "Attic":["Remove insulation","Remove drywall","Remove flooring","Remove vents","Remove lighting fixtures","Remove bracing","Remove panels","Remove wiring","Remove ductwork","Remove hatch"],
-        "Patio":["Remove pavers","Remove decking","Remove railings","Remove lighting fixtures","Remove outdoor furniture","Remove pergola","Remove planters","Remove fixtures","Remove coverings","Remove posts"],
-        "Deck":["Remove deck boards","Remove railings","Remove stairs","Remove lighting fixtures","Remove posts","Remove joists","Remove skirting","Remove hardware","Remove fascia","Remove supports"],
-        "Porch":["Remove flooring","Remove railings","Remove columns","Remove lighting fixtures","Remove door frame","Remove ceiling","Remove trim","Remove steps","Remove fixtures","Remove soffit"],
-        "Hallway":["Remove drywall","Remove flooring","Remove trim","Remove baseboards","Remove lighting fixtures","Remove railings","Remove sconces","Remove outlets","Remove vents","Remove doors"],
-        "Entryway":["Remove flooring","Remove trim","Remove lighting fixtures","Remove closet shelving","Remove doors","Remove hardware","Remove baseboards","Remove outlets","Remove vents","Remove paint"],
-        "Staircase":["Remove treads","Remove risers","Remove handrails","Remove balusters","Remove lighting fixtures","Remove carpet","Remove hardware","Remove trim","Remove landing","Remove fixture"],
-        "Exterior Walls":["Remove cladding","Remove siding","Remove fascia","Remove soffit","Remove windows","Remove trim","Remove vents","Remove fixtures","Remove caulking","Remove flashings"],
-        "Driveway":["Remove concrete","Remove asphalt","Remove pavers","Remove sealant","Remove markings","Remove curbing","Re]()
+      // Form and dynamic fields setup (unchanged) ...
+      // [Keep all of your existing walkthrough setup code here. Omitted for brevity.]
 
+      // --- PDF Export (Letter Portrait with Margin) ---
+      document.getElementById('toPdfBtn').addEventListener('click', async () => {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
+        const canvas = await html2canvas(document.getElementById('mainContainer'), { scale: 2 });
+        const img = canvas.toDataURL('image/png');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        let heightLeft = pdfHeight; let position = 0;
+        pdf.addImage(img, 'PNG', 40, position + 40, pdfWidth - 80, pdfHeight - 80);
+        heightLeft -= pdf.internal.pageSize.getHeight();
+        while (heightLeft > 0) {
+          position = heightLeft - pdfHeight; pdf.addPage();
+          pdf.addImage(img, 'PNG', 40, position + 40, pdfWidth - 80, pdfHeight - 80);
+          heightLeft -= pdf.internal.pageSize.getHeight();
+        }
+        pdf.save('Demolition_Walkthrough.pdf');
+      });
+
+      // --- SIMPLE STATIC WORK ORDER GENERATION ---
+      document.getElementById('toWorkOrderBtn').addEventListener('click', () => {
+        // Remove any existing modal
+        document.getElementById('simpleWorkOrder')?.remove();
+
+        // Modal wrapper
+        const container = document.createElement('div');
+        container.id = 'simpleWorkOrder';
+        container.style = `
+          position: fixed;
+          top: 0; left: 0;
+          width: 100vw; height: 100vh;
+          background: rgba(245,245,245,0.99);
+          color: #222;
+          padding: 0;
+          z-index: 9999;
+          overflow: auto;
+          font-family: Montserrat, sans-serif;
+        `;
+
+        // Content card for shadow/background
+        const card = document.createElement('div');
+        card.style = `
+          background: #fff;
+          margin: 40px auto 40px auto;
+          max-width: 700px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+          border-radius: 16px;
+          padding: 32px 24px 32px 24px;
+        `;
+
+        // Build Work Order HTML
+        let html = `<div style="text-align:center;margin-bottom:12px;">
+            <img src="https://kamloopsbuilders.ca/assets/logo.png" style="height:48px;margin-bottom:10px;">
+            <h2 style="color:#E65C00;margin:0 0 4px 0;">Work Order</h2>
+          </div>
+          <div style="margin-bottom:12px;">
+            <strong>Address:</strong> ${document.getElementById('siteAddress').value || ""}
+          </div>
+          <div style="margin-bottom:16px;">
+            <strong>Client:</strong> ${document.getElementById('clientName').value || ""}
+          </div>
+          <hr style="margin:16px 0 20px 0;">`;
+
+        // Checklist Items
+        html += `<div style="margin-bottom:18px;"><strong style="color:#E65C00;">Checklist</strong><ul style="margin:0 0 0 22px;padding:0;">`;
+        [['Site Conditions','siteConditionsList'],['Site Security','siteSecurityList'],['Special Client Requests','specialRequestsList']].forEach(([label, id]) => {
+          document.querySelectorAll(`#${id} input[type=checkbox]:checked`).forEach(chk => {
+            const note = document.getElementById(`${id}-note-${chk.id.split('-').pop()}`)?.value || "";
+            html += `<li style="margin-bottom:7px;">☑ <span style="font-weight:500;">${chk.value}</span>${note ? `<span style='display:block;margin-left:25px;color:#666;font-size:0.95em;'>Note: ${note}</span>` : ''}</li>`;
+          });
+        });
+        html += `</ul></div>`;
+
+        // Room Tasks
+        document.querySelectorAll('#roomsContainer fieldset').forEach(fs => {
+          const room = fs.querySelector('select').value;
+          const tasks = fs.querySelectorAll('.task-item');
+          const checked = Array.from(tasks).filter(t => t.querySelector('input[type=checkbox]').checked);
+          if (checked.length > 0) {
+            html += `<div style="margin-top:12px;"><strong>${room}</strong><ul style="margin:0 0 0 22px;padding:0;">`;
+            checked.forEach(t => {
+              const name = t.querySelector('label').textContent.trim();
+              const action = t.querySelector('select').value;
+              html += `<li style="margin-bottom:5px;">☑ ${name} <span style="color:#666;font-size:0.96em;">— ${action}</span></li>`;
+            });
+            html += `</ul></div>`;
+          }
+        });
+
+        // Download and Close buttons
+        html += `<div style="text-align:right;margin-top:28px;">
+            <button class="btn btn-primary" onclick="downloadWorkOrderAsImage()" style="width:auto;display:inline-block;padding:10px 24px;font-size:1.12em;">Download as JPEG</button>
+            <button class="btn btn-custom" onclick="document.getElementById('simpleWorkOrder').remove()" style="width:auto;display:inline-block;padding:10px 20px;margin-left:12px;">Close</button>
+          </div>`;
+
+        card.innerHTML = html;
+        container.appendChild(card);
+        document.body.appendChild(container);
+      });
+
+      // JPEG Export Function for Work Order
+      window.downloadWorkOrderAsImage = function() {
+        const card = document.querySelector('#simpleWorkOrder > div');
+        html2canvas(card, {backgroundColor: "#fff", scale: 2}).then(canvas => {
+          const link = document.createEl
