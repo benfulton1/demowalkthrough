@@ -213,14 +213,14 @@ canvas, input, textarea, select, button {
       }
 
       document.getElementById('toPdfBtn').addEventListener('click', async () => {
-        const { jsPDF } = window.jspdf; const pdf = new jsPDF('p','pt','a4');
+        const { jsPDF } = window.jspdf; const pdf = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
         const canvas = await html2canvas(document.getElementById('mainContainer'), { scale: 2 });
         const img = canvas.toDataURL('image/png'); const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
         let heightLeft = pdfHeight; let position = 0;
-        pdf.addImage(img,'PNG',0,position,pdfWidth,pdfHeight); heightLeft -= pdf.internal.pageSize.getHeight();
+        pdf.addImage(img, 'PNG', 40, position + 40, pdfWidth - 80, pdfHeight - 80); heightLeft -= pdf.internal.pageSize.getHeight();
         while (heightLeft > 0) {
-          position = heightLeft - pdfHeight; pdf.addPage(); pdf.addImage(img,'PNG',0,position,pdfWidth,pdfHeight); heightLeft -= pdf.internal.pageSize.getHeight();
+          position = heightLeft - pdfHeight; pdf.addPage(); pdf.addImage(img, 'PNG', 40, position + 40, pdfWidth - 80, pdfHeight - 80); heightLeft -= pdf.internal.pageSize.getHeight();
         }
         pdf.save('Demolition_Walkthrough.pdf');
       });
