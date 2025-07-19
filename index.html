@@ -1,264 +1,282 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Interior Elite Demolition Walkthrough v1.8</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet"/>
-<style>
-  body { font-family:'Montserrat',sans-serif; background:#f0f0f0; color:#333; margin:0; padding:0; }
-  .header { background:#ff8c00; color:#fff; display:flex; align-items:center; padding:12px 24px; }
-  .header img { height:48px; margin-right:16px; }
-  .header h1 { font-size:1.6rem; margin:0; }
-  .container { max-width:800px; margin:24px auto; padding:20px; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
-  h2 { text-align:center; color:#ff8c00; margin-bottom:24px; }
-  /* (The rest of your existing stylesheet here—tasks, buttons, forms, etc.) */
-  .sig-field { margin:16px 0; }
-  .sig-field canvas { border:1px solid #ccc; border-radius:4px; display:block; width:100%; max-width:400px; height:120px; }
-  .footer { text-align:center; padding:12px; font-size:0.85rem; color:#666; }
-</style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.6/dist/signature_pad.umd.min.js"></script>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Interior Elite Demolition Walkthrough v1.8</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-family:'Montserrat',sans-serif; background:#f0f0f0; color:#333; margin:0; padding:0; }
+    .header { background:#ff8c00; color:#fff; display:flex; align-items:center; padding:12px 24px; }
+    .header img { height:48px; margin-right:16px; }
+    .header h1 { font-size:1.6rem; margin:0; }
+    .container { max-width:800px; margin:24px auto; padding:20px; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+    h2 { text-align:center; color:#ff8c00; margin-bottom:24px; }
+    fieldset { border:1px solid #ddd; border-radius:8px; margin-bottom:20px; padding:15px; }
+    legend { font-weight:600; font-size:1.1rem; color:#444; }
+    label { display:block; margin-bottom:6px; font-weight:500; }
+    input, select, textarea { width:100%; padding:8px; margin-bottom:12px; border:1px solid #ccc; border-radius:4px; }
+    textarea { min-height:60px; resize:vertical; }
+    .btn { display:block; width:100%; padding:12px; border:none; border-radius:4px; font-weight:600; cursor:pointer; margin-bottom:12px; }
+    .btn-primary { background:#ff8c00; color:#fff; }
+    .btn-primary:hover { background:#e67600; }
+    .btn-custom { background:#444; color:#fff; }
+    .btn-custom:hover { background:#333; }
+    .btn-secondary { background:#007acc; color:#fff; }
+    .btn-secondary:hover { background:#006bb3; }
+    .personnel-item, .checklist-item, .task-item { display:flex; flex-wrap:wrap; align-items:center; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #eee; }
+    .note-input { display:none; margin-top:6px; }
+    .sig-field { margin:16px 0; }
+    .sig-field canvas { border:1px solid #ccc; border-radius:4px; display:block; width:100%; max-width:400px; height:120px; }
+    .room-photo-preview { max-width:200px; display:block; margin:10px 0; border:1px solid #ccc; }
+    .footer { text-align:center; padding:12px; font-size:0.85rem; color:#666; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.6/dist/signature_pad.umd.min.js"></script>
 </head>
 <body>
-<header class="header">
-  <img src="https://kamloopsbuilders.ca/assets/logo.png" alt="Kamloops Builders Logo">
-  <h1>Interior Elite Demolition Walkthrough</h1>
-</header>
+  <header class="header">
+    <img src="https://kamloopsbuilders.ca/assets/logo.png" alt="Kamloops Builders Logo"/>
+    <h1>Interior Elite Demolition Walkthrough</h1>
+  </header>
+  <div class="container" id="mainContainer">
+    <h2>Demolition Walkthrough v1.8</h2>
+    <p><strong>Timestamp:</strong> <span id="formTimestamp"></span></p>
+    <form id="demoForm">
+      <!-- Project Info -->
+      <fieldset><legend>Project Info</legend>
+        <label>Site Address<input id="siteAddress" type="text" placeholder="Enter site address"></label>
+        <label>Client Name<input id="clientName" type="text" placeholder="Enter client name"></label>
+        <button type="button" id="captureLocationBtn" class="btn btn-custom">Capture Site Location</button>
+        <div id="siteLocationDisplay" style="font-size:0.9rem;color:#555;"></div>
+      </fieldset>
+      <!-- Personnel -->
+      <fieldset><legend>Personnel on Site</legend>
+        <button type="button" id="addPersonnelBtn" class="btn btn-primary">+ Add Personnel</button>
+        <div id="personnelContainer"></div>
+      </fieldset>
+      <!-- Checklists -->
+      <fieldset><legend>Site Conditions</legend><div id="siteConditionsList"></div></fieldset>
+      <fieldset><legend>Site Security</legend><div id="siteSecurityList"></div></fieldset>
+      <fieldset><legend>Special Client Requests</legend><div id="specialRequestsList"></div></fieldset>
+      <!-- Rooms & Tasks -->
+      <fieldset><legend>Rooms & Tasks</legend>
+        <button type="button" id="addRoomBtn" class="btn btn-primary">+ Add Room</button>
+        <div id="roomsContainer"></div>
+      </fieldset>
+      <!-- Signatures & Save -->
+      <div id="signatureContainer"></div>
+      <button type="button" id="saveJpgBtn" class="btn btn-secondary" style="display:none;">Save copy of form</button>
+    </form>
+  </div>
+  <div class="footer">&copy; 2025 Kamloops Builders • All rights reserved</div>
 
-<div class="container" id="mainContainer">
-  <h2>Demolition Walkthrough v1.8</h2>
-  <p><strong>Timestamp:</strong> <span id="formTimestamp"></span></p>
-  <form id="demoForm">
-    <!-- Project Info, Personnel, Checklists, Rooms & Tasks — same as your working version -->
-    <fieldset><legend>Project Info</legend>
-      <label>Site Address<input id="siteAddress" type="text" placeholder="Enter site address"></label>
-      <label>Client Name<input id="clientName" type="text" placeholder="Enter client name"></label>
-      <button type="button" id="captureLocationBtn" class="btn btn-custom">Capture Site Location</button>
-      <div id="siteLocationDisplay" style="margin-top:8px;font-size:0.9rem;color:#555;"></div>
-    </fieldset>
+  <script>
+    // Timestamp
+    document.getElementById('formTimestamp').textContent = new Date().toLocaleString();
 
-    <fieldset><legend>Personnel on Site</legend>
-      <button type="button" id="addPersonnelBtn" class="btn btn-primary">+ Add Personnel</button>
-      <div id="personnelContainer"></div>
-    </fieldset>
+    // Signature logic
+    const sigPads = [], peopleTypes = ["Project Manager","Designer","Client"];
+    let personnelCount = 0;
+    function updateSaveBtn(){
+      const btn = document.getElementById('saveJpgBtn');
+      btn.style.display = (sigPads.length>0 && sigPads.every(p=>!p.isEmpty()))?'block':'none';
+    }
+    document.getElementById('addPersonnelBtn').addEventListener('click', ()=>{
+      const idx = personnelCount++;
+      const pc = document.getElementById('personnelContainer');
+      const div = document.createElement('div'); div.className='personnel-item';
+      div.innerHTML = `<select name="personnel[${idx}][role]">${peopleTypes.map(pt=>`<option>${pt}</option>`).join('')}</select>
+        <input type="text" name="personnel[${idx}][name]" placeholder="Name">
+        <input type="tel" name="personnel[${idx}][phone]" placeholder="Phone">`;
+      pc.appendChild(div);
 
-    <fieldset><legend>Site Conditions</legend><div id="siteConditionsList"></div></fieldset>
-    <fieldset><legend>Site Security</legend><div id="siteSecurityList"></div></fieldset>
-    <fieldset><legend>Special Client Requests</legend><div id="specialRequestsList"></div></fieldset>
+      const sigDiv = document.createElement('div'); sigDiv.className='sig-field';
+      sigDiv.innerHTML = `<label>Signature ${idx+1}:</label>
+        <canvas id="sigCanvas_${idx}" width="400" height="120"></canvas>
+        <button type="button" id="clearSig_${idx}">Clear</button>`;
+      document.getElementById('signatureContainer').appendChild(sigDiv);
 
-    <fieldset><legend>Rooms &amp; Tasks</legend>
-      <button type="button" id="addRoomBtn" class="btn btn-primary">+ Add Room</button>
-      <div id="roomsContainer"></div>
-    </fieldset>
-
-    <div id="signatureContainer"></div>
-
-    <button type="button" id="saveJpgBtn" class="btn btn-secondary" style="display:none;">Save copy of form</button>
-  </form>
-</div>
-
-<div class="footer">
-  &copy; 2025 Kamloops Builders • All rights reserved
-</div>
-
-<script>
-// ===== Timestamp & Signature Setup =====
-document.getElementById('formTimestamp').textContent = new Date().toLocaleString();
-
-const sigPads = [];
-let personnelCount = 0;
-const peopleTypes = ["Project Manager","Designer","Client"];
-
-function updateSaveBtn() {
-  const btn = document.getElementById('saveJpgBtn');
-  btn.style.display = (sigPads.length > 0 && sigPads.every(p=>!p.isEmpty())) ? 'block' : 'none';
-}
-
-document.getElementById('addPersonnelBtn').addEventListener('click', ()=>{
-  const idx = personnelCount++;
-  const pc = document.getElementById('personnelContainer');
-  const div = document.createElement('div');
-  div.className = 'personnel-item';
-  div.innerHTML = `
-    <select name="personnel[${idx}][role]">${peopleTypes.map(pt=>`<option>${pt}</option>`).join('')}</select>
-    <input type="text" name="personnel[${idx}][name]" placeholder="Name">
-    <input type="tel" name="personnel[${idx}][phone]" placeholder="Phone">`;
-  pc.appendChild(div);
-
-  // Add signature pad
-  const sigDiv = document.createElement('div');
-  sigDiv.className = 'sig-field';
-  sigDiv.innerHTML = `
-    <label>Signature ${idx+1}:</label>
-    <canvas id="sigCanvas_${idx}" width="400" height="120"></canvas>
-    <button type="button" id="clearSig_${idx}">Clear</button>`;
-  document.getElementById('signatureContainer').appendChild(sigDiv);
-
-  const canvas = document.getElementById(`sigCanvas_${idx}`);
-  const pad = new SignaturePad(canvas, {backgroundColor:'rgba(255,255,255,0)'});
-  sigPads.push(pad);
-
-  document.getElementById(`clearSig_${idx}`).addEventListener('click', ()=>{
-    pad.clear();
-    updateSaveBtn();
-  });
-  canvas.addEventListener('mouseup', updateSaveBtn);
-  canvas.addEventListener('touchend', updateSaveBtn);
-  updateSaveBtn();
-});
-
-document.getElementById('saveJpgBtn').addEventListener('click', ()=>{
-  html2canvas(document.getElementById('mainContainer'), {scale:2, backgroundColor:'#fff'})
-    .then(canvas=>{
-      const link = document.createElement('a');
-      link.download = 'Demolition_Walkthrough.jpg';
-      link.href = canvas.toDataURL('image/jpeg',0.95);
-      link.click();
+      const canvas = document.getElementById(`sigCanvas_${idx}`);
+      const pad = new SignaturePad(canvas, { backgroundColor:'rgba(255,255,255,0)' });
+      sigPads.push(pad);
+      document.getElementById(`clearSig_${idx}`).addEventListener('click', ()=>{pad.clear(); updateSaveBtn();});
+      canvas.addEventListener('mouseup', updateSaveBtn);
+      canvas.addEventListener('touchend', updateSaveBtn);
+      updateSaveBtn();
     });
-});
 
-// ===== Your FULL ORIGINAL FUNCTIONALITY STARTS HERE =====
+    // Save form as JPEG
+    document.getElementById('saveJpgBtn').addEventListener('click', ()=>{
+      html2canvas(document.getElementById('mainContainer'), { scale:2, backgroundColor:'#fff' })
+      .then(canvas=>{
+        const link = document.createElement('a');
+        link.download = 'Demolition_Walkthrough.jpg';
+        link.href = canvas.toDataURL('image/jpeg',0.95);
+        link.click();
+      });
+    });
 
-// Generate checklist items
-function generateChecklist(id, opts) {
-  const container = document.getElementById(id);
-  opts.forEach((opt,i)=>{
-    const div = document.createElement('div'); div.className='checklist-item';
-    const chk = document.createElement('input'); chk.type='checkbox'; chk.id=`${id}-chk-${i}`; chk.value=opt;
-    const lbl = document.createElement('label'); lbl.htmlFor=chk.id; lbl.textContent=opt;
-    const note = document.createElement('input'); note.type='text'; note.placeholder='Notes (optional)';
-    note.className='note-input'; note.id=`${id}-note-${i}`;
-    chk.addEventListener('change', ()=> note.style.display=chk.checked?'block':'none');
-    div.append(chk, lbl, note);
-    container.append(div);
-  });
-}
+    // Checklist gen
+    function generateChecklist(id, opts){
+      const c = document.getElementById(id);
+      opts.forEach((opt,i)=>{
+        const d = document.createElement('div'); d.className='checklist-item';
+        const chk = document.createElement('input'); chk.type='checkbox'; chk.id=`${id}-chk-${i}`; chk.value=opt;
+        const lbl = document.createElement('label'); lbl.htmlFor=chk.id; lbl.textContent=opt;
+        const note = document.createElement('input'); note.type='text'; note.placeholder='Notes (optional)'; note.className='note-input'; note.id=`${id}-note-${i}`;
+        chk.addEventListener('change', ()=>note.style.display=chk.checked?'block':'none');
+        d.append(chk,lbl,note); c.append(d);
+      });
+    }
+    const siteConditionsOptions=["Site access restrictions","Ground conditions (muddy/rocky)","Water accumulation","Overhead hazards","Confined space","Noise sensitive area","Dust control measures","Traffic control required","Environmental protection zones","Asbestos identified","Lead paint identified","High wind exposure","Sloped terrain","Restricted working hours","Weather forecast monitoring"];
+    const siteSecurityOptions=["Perimeter fencing","Lockable gates","Warning signage","CCTV surveillance","Temporary lighting","Security guards","Access logs","Alarm systems","Fire watch","Visitor log","Key control","Lockout/tagout","Exit signage","Barriers"];
+    const specialRequestsOptions=["Salvage materials","Furniture protection","Debris staging","Separate waste streams","Client liaison","Restricted hours","Noise mitigation","Dust suppression","Landscaping protect","Structure protect","Third party coord","Photo documentation"];
+    generateChecklist('siteConditionsList', siteConditionsOptions);
+    generateChecklist('siteSecurityList', siteSecurityOptions);
+    generateChecklist('specialRequestsList', specialRequestsOptions);
 
-const siteConditionsOptions = ["Site access restrictions","Ground conditions (muddy/rocky)","Water accumulation","Overhead hazards","Confined space","Noise sensitive area","Dust control measures","Traffic control required","Environmental protection zones","Asbestos identified","Lead paint identified","High wind exposure","Sloped terrain","Restricted working hours","Weather forecast monitoring"];
-const siteSecurityOptions = ["Perimeter fencing","Lockable gates","Warning signage","CCTV surveillance","Temporary lighting","Security guards","Access logs","Alarm systems","Fire watch","Visitor log","Key control","Lockout/tagout","Exit signage","Barriers"];
-const specialRequestsOptions = ["Salvage materials","Furniture protection","Debris staging","Separate waste streams","Client liaison","Restricted hours","Noise mitigation","Dust suppression","Landscaping protect","Structure protect","Third party coord","Photo documentation"];
+    // Room/task logic
+    const roomList=["Bathroom","Kitchen","Living Room","Bedroom","Dining Room","Home Office","Laundry Room","Garage","Basement","Attic","Patio","Deck","Porch","Hallway","Entryway","Staircase","Exterior Walls","Driveway","Sidewalk","Landscaping Area","Roof"];
+    const standardTasks=["Remove wall drywall","Remove ceiling drywall","Remove flooring","Remove doors","Remove trim/moulding","Remove baseboard trim","Asbestos review","Disconnect utilities","General cleanup","Debris removal"];
+    const roomSpecificTasks={/* ...same as your original object... */};
 
-generateChecklist('siteConditionsList', siteConditionsOptions);
-generateChecklist('siteSecurityList', siteSecurityOptions);
-generateChecklist('specialRequestsList', specialRequestsOptions);
+    function renderTasks(idx,type){
+      const cont=document.getElementById(`tasks-${idx}`); cont.innerHTML='';
+      const tasks=standardTasks.concat(roomSpecificTasks[type]||[]);
+      tasks.forEach(task=>{
+        const div=document.createElement('div'); div.className='task-item';
+        const lbl=document.createElement('label');
+        const cb=document.createElement('input'); cb.type='checkbox'; cb.value=task;
+        lbl.append(cb,document.createTextNode(task));
+        const ctr=document.createElement('div'); ctr.className='task-controls';
+        const sel=document.createElement('select');
+        ['Dispose','Bring to shop','Store on site'].forEach(opt=>{const o=document.createElement('option');o.value=opt;o.textContent=opt;sel.append(o);});
+        sel.style.display='none';
+        cb.addEventListener('change',()=>sel.style.display=cb.checked?'block':'none');
+        ctr.append(sel); div.append(lbl,ctr); cont.append(div);
+      });
+    }
 
-// Room/task logic
-const roomList = ["Bathroom","Kitchen","Living Room","Bedroom","Dining Room","Home Office","Laundry Room","Garage","Basement","Attic","Patio","Deck","Porch","Hallway","Entryway","Staircase","Exterior Walls","Driveway","Sidewalk","Landscaping Area","Roof"];
-const standardTasks = ["Remove wall drywall","Remove ceiling drywall","Remove flooring","Remove doors","Remove trim/moulding","Remove baseboard trim","Asbestos review","Disconnect utilities","General cleanup","Debris removal"];
-const roomSpecificTasks = { /* same structure as before... */ };
+    function addCustomTask(idx){
+      const container=document.getElementById(`tasks-${idx}`);
+      const div=document.createElement('div'); div.className='task-item';
+      const lbl=document.createElement('label');
+      const cb=document.createElement('input'); cb.type='checkbox';
+      const inp=document.createElement('input'); inp.type='text'; inp.placeholder='Custom task'; inp.style.flex='1'; inp.style.marginLeft='8px';
+      lbl.append(cb,inp);
+      const ctr=document.createElement('div'); ctr.className='task-controls';
+      const sel=document.createElement('select');
+      ['Dispose','Bring to shop','Store on site'].forEach(opt=>{const o=document.createElement('option'); o.value=opt;o.textContent=opt;sel.append(o);});
+      sel.style.display='none';
+      cb.addEventListener('change',()=>sel.style.display=cb.checked?'block':'none');
+      ctr.append(sel); div.append(lbl,ctr); container.append(div);
+    }
 
-// Persistence helpers (localStorage save/load custom tasks & photos)
-function saveRoomPhoto(idx, dataURL) {
-  localStorage.setItem(`room-${idx}-photo`, dataURL);
-}
-function loadRoomPhoto(idx){
-  return localStorage.getItem(`room-${idx}-photo`);
-}
-function saveCustomTasks(idx){
-  const tasks = Array.from(document.querySelectorAll(`#tasks-${idx} .task-item`))
-    .filter(it=>it.querySelector('input[type="text"]'))
-    .map(it=>({
-        text:it.querySelector('input[type="text"]').value,
-        checked:it.querySelector('input[type="checkbox"]').checked,
-        disposition:it.querySelector('select').value
-    }));
-  localStorage.setItem(`room-${idx}-customTasks`, JSON.stringify(tasks));
-}
-function loadCustomTasks(idx){
-  const data=JSON.parse(localStorage.getItem(`room-${idx}-customTasks`)||'[]');
-  data.forEach(td=>{
-    addCustomTask(idx);
-    const last=document.querySelector(`#tasks-${idx} .task-item:last-child`);
-    last.querySelector('input[type="text"]').value=td.text;
-    const cb=last.querySelector('input[type="checkbox"]'); cb.checked=td.checked;
-    const sel=last.querySelector('select'); if(td.checked) sel.style.display='block'; sel.value=td.disposition;
-  });
-}
+    function insertPhotoPreview(idx,dataURL){
+      const fs=document.getElementById(`room-${idx}`);
+      let img=fs.querySelector('img.room-photo-preview');
+      if(!img){ img=document.createElement('img'); img.className='room-photo-preview'; fs.appendChild(img);}
+      img.src=dataURL;
+    }
 
-function insertPhotoPreview(idx,dataURL){
-  const fs=document.getElementById(`room-${idx}`);
-  let img=fs.querySelector('img.room-photo-preview');
-  if(!img){ img=document.createElement('img'); img.className='room-photo-preview'; img.style='max-width:200px;display:block;margin:10px 0;border:1px solid #ccc;'; fs.appendChild(img); }
-  img.src=dataURL;
-}
+    function saveRoomPhoto(idx,dataURL){
+      localStorage.setItem(`room-${idx}-photo`, dataURL);
+    }
 
-// Add Room and Tasks
-let roomCount=0;
-document.getElementById('addRoomBtn').addEventListener('click',()=>{
-  const idx=roomCount++;
-  const fs=document.createElement('fieldset'); fs.id=`room-${idx}`;
-  const lg=document.createElement('legend'); lg.textContent=`Room ${idx+1}`; fs.append(lg);
-  const sel=document.createElement('select'); sel.name=`rooms[${idx}][type]`;
-  roomList.forEach(r=>{const o=document.createElement('option'); o.value=r;o.textContent=r;sel.append(o);});
-  sel.addEventListener('change',()=>{renderTasks(idx,sel.value); loadCustomTasks(idx); const p=loadRoomPhoto(idx); if(p) insertPhotoPreview(idx,p);});
-  fs.append(sel);
+    function loadRoomPhoto(idx){
+      return localStorage.getItem(`room-${idx}-photo`);
+    }
 
-  const photo=document.createElement('input'); photo.type='file'; photo.accept='image/*'; photo.capture='environment';
-  photo.addEventListener('change',()=>{
-    const f=photo.files[0]; if(f){const reader=new FileReader(); reader.onload=e=>{saveRoomPhoto(idx,e.target.result); insertPhotoPreview(idx,e.target.result);} ; reader.readAsDataURL(f);}
-  });
-  fs.append(photo);
+    function saveCustomTasks(idx){
+      const tasks=Array.from(document.querySelectorAll(`#tasks-${idx} .task-item`))
+        .filter(it=>it.querySelector('input[type="text"]'))
+        .map(it=>({
+          text:it.querySelector('input[type="text"]').value,
+          checked:it.querySelector('input[type="checkbox"]').checked,
+          disposition:it.querySelector('select').value
+        }));
+      localStorage.setItem(`room-${idx}-customTasks`, JSON.stringify(tasks));
+    }
 
-  const tasksDiv=document.createElement('div'); tasksDiv.id=`tasks-${idx}`; fs.append(tasksDiv);
-  const btn=document.createElement('button'); btn.type='button'; btn.className='btn btn-custom'; btn.textContent='+ Custom Task';
-  btn.addEventListener('click',()=>{addCustomTask(idx); saveCustomTasks(idx);}); fs.append(btn);
+    function loadCustomTasks(idx){
+      const data=JSON.parse(localStorage.getItem(`room-${idx}-customTasks`)||'[]');
+      data.forEach(td=>{
+        addCustomTask(idx);
+        const last=document.querySelector(`#tasks-${idx} .task-item:last-child`);
+        last.querySelector('input[type="text"]').value=td.text;
+        const cb=last.querySelector('input[type="checkbox"]'); cb.checked=td.checked;
+        const sel=last.querySelector('select'); if(td.checked) sel.style.display='block'; sel.value=td.disposition;
+      });
+    }
 
-  document.getElementById('roomsContainer').prepend(fs);
-  renderTasks(idx,roomList[0]);
-  loadCustomTasks(idx);
-  const p=loadRoomPhoto(idx); if(p) insertPhotoPreview(idx,p);
+    let roomCount=0;
+    document.getElementById('addRoomBtn').addEventListener('click',()=>{
+      const idx=roomCount++;
+      const fs=document.createElement('fieldset'); fs.id=`room-${idx}`;
+      const lg=document.createElement('legend'); lg.textContent=`Room ${idx+1}`; fs.appendChild(lg);
 
-  localStorage.setItem('roomCount',roomCount);
-});
+      const sel=document.createElement('select'); sel.name=`rooms[${idx}][type]`;
+      roomList.forEach(r=>{ const o=document.createElement('option'); o.value=r; o.textContent=r; sel.appendChild(o); });
+      sel.addEventListener('change',()=>{
+        renderTasks(idx,sel.value);
+        loadCustomTasks(idx);
+        const p=loadRoomPhoto(idx);
+        if(p) insertPhotoPreview(idx,p);
+      });
+      fs.appendChild(sel);
 
-function renderTasks(idx,type){
-  const cont=document.getElementById(`tasks-${idx}`); cont.innerHTML='';
-  const tasks=standardTasks.concat(roomSpecificTasks[type]||[]);
-  tasks.forEach(task=>{
-    const div=document.createElement('div'); div.className='task-item';
-    const lbl=document.createElement('label');
-    const cb=document.createElement('input'); cb.type='checkbox'; cb.value=task;
-    lbl.append(cb, document.createTextNode(task));
-    const ctr=document.createElement('div'); ctr.className='task-controls';
-    const sel=document.createElement('select');
-    ['Dispose','Bring to shop','Store on site'].forEach(opt=>{const o=document.createElement('option'); o.value=opt; o.textContent=opt; sel.append(o);});
-    sel.style.display='none';
-    cb.addEventListener('change',()=>sel.style.display=cb.checked?'block':'none');
-    ctr.append(sel); div.append(lbl,ctr);
-    cont.append(div);
-  });
-}
+      const photo=document.createElement('input');
+      photo.type='file'; photo.accept='image/*'; photo.capture='environment';
+      photo.addEventListener('change',()=>{
+        const f=photo.files[0]; if(f){
+          const reader=new FileReader(); reader.onload=e=>{
+            saveRoomPhoto(idx,e.target.result);
+            insertPhotoPreview(idx,e.target.result);
+          };
+          reader.readAsDataURL(f);
+        }
+      });
+      fs.appendChild(photo);
 
-function addCustomTask(idx){
-  const cont=document.getElementById(`tasks-${idx}`);
-  const div=document.createElement('div'); div.className='task-item';
-  const lbl=document.createElement('label');
-  const cb=document.createElement('input'); cb.type='checkbox';
-  const inp=document.createElement('input'); inp.type='text'; inp.placeholder='Custom task'; inp.style.flex='1'; inp.style.marginLeft='8px';
-  lbl.append(cb,inp);
-  const ctr=document.createElement('div'); ctr.className='task-controls';
-  const sel=document.createElement('select');
-  ['Dispose','Bring to shop','Store on site'].forEach(opt=>{const o=document.createElement('option'); o.value=opt; o.textContent=opt; sel.append(o);});
-  sel.style.display='none';
-  cb.addEventListener('change',()=>sel.style.display=cb.checked?'block':'none');
-  ctr.append(sel); div.append(lbl,ctr);
-  cont.append(div);
-}
+      const tasksDiv=document.createElement('div'); tasksDiv.id=`tasks-${idx}`; fs.appendChild(tasksDiv);
 
-document.getElementById('captureLocationBtn').addEventListener('click',()=>{
-  if(!navigator.geolocation){alert('Geolocation not supported');return;}
-  navigator.geolocation.getCurrentPosition(pos=>{
-    document.getElementById('siteLocationDisplay').textContent=
-      `Latitude: ${pos.coords.latitude.toFixed(6)}, Longitude: ${pos.coords.longitude.toFixed(6)}`;
-  },err=>{alert('Unable to retrieve location: '+err.message);});
-});
+      const btn=document.createElement('button');
+      btn.type='button'; btn.className='btn btn-custom'; btn.textContent='+ Custom Task';
+      btn.addEventListener('click',()=>{
+        addCustomTask(idx);
+        saveCustomTasks(idx);
+      });
+      fs.appendChild(btn);
 
-// Restore on load
-const savedCount=+localStorage.getItem('roomCount')||0;
-for(let i=0;i<savedCount;i++){
-  document.getElementById('addRoomBtn').click();
-}  
-</script>
+      document.getElementById('roomsContainer').appendChild(fs);
+      renderTasks(idx,roomList[0]);
+      loadCustomTasks(idx);
+      const stored=loadRoomPhoto(idx); if(stored) insertPhotoPreview(idx,stored);
+
+      localStorage.setItem('roomCount', roomCount);
+    });
+
+    document.getElementById('captureLocationBtn').addEventListener('click', ()=>{
+      if(!navigator.geolocation){ alert('Geolocation not supported'); return; }
+      navigator.geolocation.getCurrentPosition(pos=>{
+        document.getElementById('siteLocationDisplay').textContent = `Latitude: ${pos.coords.latitude.toFixed(6)}, Longitude: ${pos.coords.longitude.toFixed(6)}`;
+      }, err => alert('Unable to retrieve location: ' + err.message));
+    });
+
+    window.addEventListener('beforeunload', ()=>{
+      localStorage.setItem('siteAddress', document.getElementById('siteAddress').value);
+      localStorage.setItem('clientName', document.getElementById('clientName').value);
+      localStorage.setItem('roomCount', roomCount);
+      // Save other needed data if required...
+    });
+
+    window.addEventListener('DOMContentLoaded', ()=>{
+      const sa=localStorage.getItem('siteAddress'); if(sa) document.getElementById('siteAddress').value=sa;
+      const cn=localStorage.getItem('clientName'); if(cn) document.getElementById('clientName').value=cn;
+      const rc=+localStorage.getItem('roomCount')||0;
+      for(let i=0;i<rc;i++){ document.getElementById('addRoomBtn').click(); }
+    });
+  </script>
 </body>
 </html>
