@@ -1,12 +1,13 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>Interior Elite Demolition Walkthrough v1.6</title>
-  <!-- Montserrat font -->
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet"/>
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1.0" name="viewport"/>
+<title>Interior Elite Demolition Walkthrough v1.6</title>
+<!-- Montserrat font -->
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<style>
     body { font-family: 'Montserrat', sans-serif; background: #f4f4f4; color: #333; margin: 0; padding: 0; }
     .header { background: #E65C00; color: #fff; display: flex; align-items: center; padding: 10px 20px; }
     .header img { height: 40px; margin-right: 15px; }
@@ -34,157 +35,640 @@
     .task-controls { margin-left: auto; }
     .task-controls select { padding: 6px; border-radius: 4px; border: 1px solid #ccc; }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-</head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.6/dist/signature_pad.umd.min.js"></script></head>
 <body>
-  <header class="header">
-    <img src="https://kamloopsbuilders.ca/assets/logo.png" alt="Interior Elite Logo">
-    <h1>Interior Elite Contracting</h1>
-  </header>
-  <div class="container" id="mainContainer">
-    <h2>Demolition Walkthrough v1.6</h2>
-    <form id="demoForm">
-      <fieldset>
-        <legend>Project Info</legend>
-        <label>Site Address<input type="text" id="siteAddress" placeholder="Enter site address"></label>
-        <label>Client Name<input type="text" id="clientName" placeholder="Enter client name"></label>
-        <button type="button" id="captureLocationBtn" class="btn btn-custom">Capture Site Location</button>
-        <div id="siteLocationDisplay" style="margin-bottom:12px;font-size:0.9em;color:#555;"></div>
-      </fieldset>
-      <fieldset>
-        <legend>Personnel on Site</legend>
-        <button type="button" id="addPersonnelBtn" class="btn btn-primary">+ Add Personnel</button>
-        <div id="personnelContainer"></div>
-      </fieldset>
-      <fieldset>
-        <legend>Site Conditions</legend>
-        <div id="siteConditionsList"></div>
-      </fieldset>
-      <fieldset>
-        <legend>Site Security</legend>
-        <div id="siteSecurityList"></div>
-      </fieldset>
-      <fieldset>
-        <legend>Special Client Requests</legend>
-        <div id="specialRequestsList"></div>
-      </fieldset>
-      <fieldset>
-        <legend>Rooms & Tasks</legend>
-        <button type="button" id="addRoomBtn" class="btn btn-primary">+ Add Room</button>
-        <div id="roomsContainer"></div>
-      </fieldset>
-      <button type="button" id="toPdfBtn" class="btn btn-secondary">Convert to PDF</button>
-      <button type="button" id="toWorkOrderBtn" class="btn btn-secondary">Convert to Work Order</button>
-    </form>
-  </div>
-  <script>
+<header class="header">
+<img alt="Interior Elite Logo" src="https://kamloopsbuilders.ca/assets/logo.png"/>
+<h1>Interior Elite Contracting</h1>
+</header>
+<div class="container" id="mainContainer">
+<h2>Demolition Walkthrough v1.6</h2>
+<form id="demoForm">
+<fieldset>
+<legend>Project Info</legend>
+<label>Site Address<input id="siteAddress" placeholder="Enter site address" type="text"/></label>
+<label>Client Name<input id="clientName" placeholder="Enter client name" type="text"/></label>
+<button class="btn btn-custom" id="captureLocationBtn" type="button">Capture Site Location</button>
+<div id="siteLocationDisplay" style="margin-bottom:12px;font-size:0.9em;color:#555;"></div>
+</fieldset>
+<fieldset>
+<legend>Personnel on Site</legend>
+<button class="btn btn-primary" id="addPersonnelBtn" type="button">+ Add Personnel</button>
+<div id="personnelContainer"></div>
+</fieldset>
+<fieldset>
+<legend>Site Conditions</legend>
+<div id="siteConditionsList"></div>
+</fieldset>
+<fieldset>
+<legend>Site Security</legend>
+<div id="siteSecurityList"></div>
+</fieldset>
+<fieldset>
+<legend>Special Client Requests</legend>
+<div id="specialRequestsList"></div>
+</fieldset>
+<fieldset>
+<legend>Rooms &amp; Tasks</legend>
+<button class="btn btn-primary" id="addRoomBtn" type="button">+ Add Room</button>
+<div id="roomsContainer"></div>
+</fieldset>
+<button class="btn btn-secondary" id="toPdfBtn" type="button">Convert to PDF</button>
+<button class="btn btn-secondary" id="toWorkOrderBtn" type="button">Convert to Work Order</button>
+</form>
+</div>
+<script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Form and dynamic fields setup (unchanged) ...
-      // [Keep all of your existing walkthrough setup code here. Omitted for brevity.]
+      const peopleTypes = ["Project Manager", "Designer", "Client"];
+      const roomList = ["Bathroom","Kitchen","Living Room","Bedroom","Dining Room","Home Office","Laundry Room","Garage","Basement","Attic","Patio","Deck","Porch","Hallway","Entryway","Staircase","Exterior Walls","Driveway","Sidewalk","Landscaping Area","Roof"];
+      const standardTasks = ["Remove wall drywall","Remove ceiling drywall","Remove flooring","Remove doors","Remove trim/moulding","Remove baseboard trim","Asbestos review","Disconnect utilities","General cleanup","Debris removal"];
+      const roomSpecificTasks = {
+        "Bathroom":["Remove toilet","Remove bathtub/shower","Remove vanity","Remove countertop","Remove sink","Remove mirror","Remove medicine cabinet","Remove tile from walls","Remove tile from floor","Remove plumbing fixtures"],
+        "Kitchen":["Remove cabinets","Remove countertops","Remove sink","Remove faucet","Remove appliances","Remove backsplash tile","Remove lighting fixtures","Remove island","Remove hood","Remove dishwasher"],
+        "Living Room":["Remove drywall","Remove flooring","Remove trim","Remove baseboards","Remove windows","Remove built-in shelves","Remove fireplace","Remove lighting fixtures","Remove wall coverings","Remove vents"],
+        "Bedroom":["Remove drywall","Remove flooring","Remove trim","Remove baseboards","Remove windows","Remove closet shelving","Remove lighting fixtures","Remove built-in furniture","Remove outlets","Remove vents"],
+        "Dining Room":["Remove drywall","Remove flooring","Remove trim","Remove baseboards","Remove lighting fixtures","Remove built-in features","Remove chandelier","Remove paint","Remove curtains","Remove outlets"],
+        "Home Office":["Remove drywall","Remove flooring","Remove trim","Remove baseboards","Remove built-in desks","Remove lighting fixtures","Remove data outlets","Remove shelving","Remove whiteboards","Remove outlets"],
+        "Laundry Room":["Remove washer/dryer","Remove cabinets","Remove sink","Remove plumbing fixtures","Remove flooring","Remove lighting fixtures","Remove ventilation fan","Remove tile","Remove shelving","Remove outlets"],
+        "Garage":["Remove drywall","Remove shelving","Remove cabinets","Remove doors","Remove windows","Remove lighting fixtures","Remove electrical fixtures","Remove insulation","Remove hooks","Remove signage"],
+        "Basement":["Remove drywall","Remove flooring","Remove insulation","Remove trim","Remove lighting fixtures","Remove windows","Remove sump pump cover","Remove tile","Remove shelving","Remove outlets"],
+        "Attic":["Remove insulation","Remove drywall","Remove flooring","Remove vents","Remove lighting fixtures","Remove bracing","Remove panels","Remove wiring","Remove ductwork","Remove hatch"],
+        "Patio":["Remove pavers","Remove decking","Remove railings","Remove lighting fixtures","Remove outdoor furniture","Remove pergola","Remove planters","Remove fixtures","Remove coverings","Remove posts"],
+        "Deck":["Remove deck boards","Remove railings","Remove stairs","Remove lighting fixtures","Remove posts","Remove joists","Remove skirting","Remove hardware","Remove fascia","Remove supports"],
+        "Porch":["Remove flooring","Remove railings","Remove columns","Remove lighting fixtures","Remove door frame","Remove ceiling","Remove trim","Remove steps","Remove fixtures","Remove soffit"],
+        "Hallway":["Remove drywall","Remove flooring","Remove trim","Remove baseboards","Remove lighting fixtures","Remove railings","Remove sconces","Remove outlets","Remove vents","Remove doors"],
+        "Entryway":["Remove flooring","Remove trim","Remove lighting fixtures","Remove closet shelving","Remove doors","Remove hardware","Remove baseboards","Remove outlets","Remove vents","Remove paint"],
+        "Staircase":["Remove treads","Remove risers","Remove handrails","Remove balusters","Remove lighting fixtures","Remove carpet","Remove hardware","Remove trim","Remove landing","Remove fixture"],
+        "Exterior Walls":["Remove cladding","Remove siding","Remove fascia","Remove soffit","Remove windows","Remove trim","Remove vents","Remove fixtures","Remove caulking","Remove flashings"],
+        "Driveway":["Remove concrete","Remove asphalt","Remove pavers","Remove sealant","Remove markings","Remove curbing","Remove debris","Remove expansion joints","Remove edging","Remove gravel"],
+        "Sidewalk":["Remove concrete","Remove pavers","Remove curb","Remove sealant","Remove debris","Remove expansion joints","Remove edging","Remove fixtures","Remove paint","Remove weeds"],
+        "Landscaping Area":["Remove plants","Remove mulch","Remove edging","Remove debris","Remove topsoil","Remove pipes","Remove fences","Remove planters","Remove irrigation","Remove fixtures"],
+        "Roof":["Remove shingles","Remove underlayment","Remove flashing","Remove gutters","Remove downspouts","Remove vents","Remove skylights","Remove decking","Remove hardware","Remove insulation"]
+      };
+      const siteConditionsOptions = ["Site access restrictions","Ground conditions (muddy/rocky)","Water accumulation","Overhead hazards","Confined space","Noise sensitive area","Dust control measures","Traffic control required","Environmental protection zones","Asbestos identified","Lead paint identified","High wind exposure","Sloped terrain","Restricted working hours","Weather forecast monitoring"];
+      const siteSecurityOptions = ["Perimeter fencing","Lockable gates","Warning signage","CCTV surveillance","Temporary lighting","Security guards","Access logs","Alarm systems","Fire watch","Visitor log","Key control","Lockout/tagout","Exit signage","Barriers"];
+      const specialRequestsOptions = ["Salvage materials","Furniture protection","Debris staging","Separate waste streams","Client liaison","Restricted hours","Noise mitigation","Dust suppression","Landscaping protect","Structure protect","Third party coord","Photo documentation"];
 
-      // --- PDF Export (Letter Portrait with Margin) ---
+      function generateChecklist(id, opts) {
+        const container = document.getElementById(id);
+        opts.forEach((opt,i) => {
+          const div = document.createElement('div'); div.className = 'checklist-item';
+          const chk = document.createElement('input'); chk.type = 'checkbox'; chk.id = `${id}-chk-${i}`; chk.value = opt;
+          const lbl = document.createElement('label'); lbl.htmlFor = chk.id; lbl.textContent = opt;
+          const note = document.createElement('input'); note.type = 'text'; note.placeholder = 'Notes (optional)'; note.className = 'note-input'; note.id = `${id}-note-${i}`;
+          chk.addEventListener('change', () => note.style.display = chk.checked ? 'block' : 'none');
+          div.append(chk, lbl, note); container.append(div);
+        });
+      }
+
+      // Initialize checklists
+      generateChecklist('siteConditionsList', siteConditionsOptions);
+      generateChecklist('siteSecurityList', siteSecurityOptions);
+      generateChecklist('specialRequestsList', specialRequestsOptions);
+
+      // Personnel
+      let personCount = 0;
+      document.getElementById('addPersonnelBtn').addEventListener('click', () => {
+        const idx = personCount++;
+        const div = document.createElement('div'); div.className = 'personnel-item';
+        const sel = document.createElement('select'); sel.name = `personnel[${idx}][role]`;
+        peopleTypes.forEach(pt => {
+          const o = document.createElement('option'); o.value = pt; o.textContent = pt; sel.append(o);
+        });
+        const inName = document.createElement('input'); inName.type = 'text'; inName.name = `personnel[${idx}][name]`; inName.placeholder = 'Name';
+        const inPhone = document.createElement('input'); inPhone.type = 'tel'; inPhone.name = `personnel[${idx}][phone]`; inPhone.placeholder = 'Phone';
+        div.append(sel, inName, inPhone);
+        document.getElementById('personnelContainer').append(div);
+      });
+
+      // Rooms
+      let roomCount = 0;
+      document.getElementById('addRoomBtn').addEventListener('click', () => {
+        const idx = roomCount++;
+        const fs = document.createElement('fieldset'); fs.id = `room-${idx}`;
+        const lg = document.createElement('legend'); lg.textContent = `Room ${idx+1}`; fs.append(lg);
+        const sel = document.createElement('select'); sel.name = `rooms[${idx}][type]`;
+        roomList.forEach(r => {
+          const o = document.createElement('option'); o.value = r; o.textContent = r; sel.append(o);
+        });
+        sel.addEventListener('change', () => renderTasks(idx, sel.value)); fs.append(sel);
+        const photo = document.createElement('input'); photo.type = 'file'; photo.accept = 'image/*'; photo.capture = 'environment'; photo.name = `rooms[${idx}][photo]`; fs.append(photo);
+        const tasksDiv = document.createElement('div'); tasksDiv.id = `tasks-${idx}`; fs.append(tasksDiv);
+        const btnCustom = document.createElement('button'); btnCustom.type = 'button'; btnCustom.className = 'btn btn-custom'; btnCustom.textContent = '+ Custom Task';
+        btnCustom.addEventListener('click', () => addCustomTask(idx)); fs.append(btnCustom);
+        document.getElementById('roomsContainer').prepend(fs);
+        renderTasks(idx, roomList[0]);
+      });
+
+      function renderTasks(idx, type) {
+        const container = document.getElementById(`tasks-${idx}`); container.innerHTML = '';
+        const tasks = standardTasks.concat(roomSpecificTasks[type] || []);
+        tasks.forEach(task => {
+          const div = document.createElement('div'); div.className = 'task-item';
+          const lbl = document.createElement('label');
+          const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = task;
+          lbl.append(cb, document.createTextNode(task));
+          const ctr = document.createElement('div'); ctr.className = 'task-controls';
+          const sel = document.createElement('select'); ['Dispose','Bring to shop','Store on site'].forEach(opt => {
+            const o = document.createElement('option'); o.value = opt; o.textContent = opt; sel.append(o);
+          });
+          sel.style.display = 'none';
+          cb.addEventListener('change', () => sel.style.display = cb.checked ? 'block' : 'none');
+          ctr.append(sel);
+          div.append(lbl, ctr);
+          container.append(div);
+        });
+      }
+
+      function addCustomTask(idx) {
+        const container = document.getElementById(`tasks-${idx}`);
+        const div = document.createElement('div'); div.className = 'task-item';
+        const lbl = document.createElement('label');
+        const cb = document.createElement('input'); cb.type = 'checkbox';
+        const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Custom task'; inp.style.flex = '1'; inp.style.marginLeft = '8px';
+        lbl.append(cb, inp);
+        const ctr = document.createElement('div'); ctr.className = 'task-controls';
+        const sel = document.createElement('select'); ['Dispose','Bring to shop','Store on site'].forEach(opt => {
+          const o = document.createElement('option'); o.value = opt; o.textContent = opt; sel.append(o);
+        });
+        sel.style.display = 'none';
+        cb.addEventListener('change', () => sel.style.display = cb.checked ? 'block' : 'none');
+        ctr.append(sel);
+        div.append(lbl, ctr);
+        container.append(div);
+      }
+
       document.getElementById('toPdfBtn').addEventListener('click', async () => {
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
+        const { jsPDF } = window.jspdf; const pdf = new jsPDF('p','pt','a4');
         const canvas = await html2canvas(document.getElementById('mainContainer'), { scale: 2 });
-        const img = canvas.toDataURL('image/png');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const img = canvas.toDataURL('image/png'); const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
         let heightLeft = pdfHeight; let position = 0;
-        pdf.addImage(img, 'PNG', 40, position + 40, pdfWidth - 80, pdfHeight - 80);
-        heightLeft -= pdf.internal.pageSize.getHeight();
+        pdf.addImage(img,'PNG',0,position,pdfWidth,pdfHeight); heightLeft -= pdf.internal.pageSize.getHeight();
         while (heightLeft > 0) {
-          position = heightLeft - pdfHeight; pdf.addPage();
-          pdf.addImage(img, 'PNG', 40, position + 40, pdfWidth - 80, pdfHeight - 80);
-          heightLeft -= pdf.internal.pageSize.getHeight();
+          position = heightLeft - pdfHeight; pdf.addPage(); pdf.addImage(img,'PNG',0,position,pdfWidth,pdfHeight); heightLeft -= pdf.internal.pageSize.getHeight();
         }
         pdf.save('Demolition_Walkthrough.pdf');
       });
 
-      // --- SIMPLE STATIC WORK ORDER GENERATION ---
       document.getElementById('toWorkOrderBtn').addEventListener('click', () => {
-        // Remove any existing modal
-        document.getElementById('simpleWorkOrder')?.remove();
+        <!-- WORK ORDER ENHANCEMENT START -->
 
-        // Modal wrapper
-        const container = document.createElement('div');
-        container.id = 'simpleWorkOrder';
-        container.style = `
-          position: fixed;
-          top: 0; left: 0;
-          width: 100vw; height: 100vh;
-          background: rgba(245,245,245,0.99);
-          color: #222;
-          padding: 0;
-          z-index: 9999;
-          overflow: auto;
-          font-family: Montserrat, sans-serif;
+
+// WORK ORDER ENHANCEMENT START
+document.getElementById('toWorkOrderBtn').addEventListener('click', () => {
+  const container = document.createElement('div');
+  container.id = 'workOrderModal';
+  container.style = `
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background-color: rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: center;
+    align-items: start;
+    padding: 2vh;
+    overflow-y: auto;
+    z-index: 9999;
+  `;
+
+  const inner = document.createElement('div');
+  inner.style = `
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 800px;
+    font-family: Montserrat, sans-serif;
+  `;
+
+  inner.innerHTML = `
+    <button onclick="this.closest('#workOrderModal').remove()" style="float:right;font-size:1.5em;border:none;background:none;">&times;</button>
+    <h2 style="color:#E65C00;">Work Order Summary</h2>
+    <div id="accordionSectionContainer"></div><h3 style="margin-top:30px;">Room Tasks</h3><div id="roomTasksContainer"></div>
+    <h3 style="margin-top:20px;">Digital Sign-off</h3>
+    <canvas id="sigCanvas" width="400" height="120" style="border:1px solid #ccc;border-radius:6px;"></canvas>
+    <input type="text" id="signName" placeholder="Printed Name" style="display:block;width:100%;margin-top:10px;padding:6px;">
+    <input type="date" id="signDate" style="display:block;width:100%;margin-top:6px;padding:6px;">
+    <h3 style="margin-top:20px;">Progress</h3>
+    <div style="background:#eee;height:20px;border-radius:10px;overflow:hidden;">
+      <div id="progressBar" style="background:#E65C00;width:0%;height:100%;transition:width 0.3s;"></div>
+    </div>
+    <p style="text-align:right;"><span id="progressText">0%</span> complete</p>
+    <div style="text-align:right;margin-top:20px;">
+      <button class="btn btn-secondary" onclick="exportWorkOrderPDF()">Download PDF</button>
+      <button class="btn btn-primary" onclick="emailWorkOrderSummary()">Email Checklist</button>
+    </div>
+  `;
+
+  container.appendChild(inner);
+  document.body.appendChild(container);
+
+  renderAccordionSections();
+  setupSignaturePad();
+  updateProgressBar();
+});
+
+function renderAccordionSections() {
+  const targets = [
+    { id: 'siteConditionsList', label: 'Site Conditions' },
+    { id: 'siteSecurityList', label: 'Site Security' },
+    { id: 'specialRequestsList', label: 'Special Client Requests' }
+  ];
+  const container = document.getElementById('accordionSectionContainer');
+
+  targets.forEach(section => {
+    const source = document.getElementById(section.id);
+    const accordion = document.createElement('div');
+    accordion.style.margin = '10px 0';
+    accordion.innerHTML = `
+      <button style="width:100%;text-align:left;padding:10px;background:#f7f7f7;border:1px solid #ccc;border-radius:4px;">${section.label}</button>
+      <div style="display:none;padding:10px;border:1px solid #ccc;border-top:none;">
+        ${Array.from(source.querySelectorAll('.checklist-item')).map(item => {
+          const input = item.querySelector('input[type=checkbox]');
+          const label = item.querySelector('label').textContent.trim();
+          const note = item.querySelector('.note-input')?.value || '';
+          const checked = input.checked ? 'checked' : '';
+          const noteBox = input.checked ? `<textarea class='accordion-note' style='width:100%;margin-top:6px;'>${note}</textarea>` : '';
+          return `<div style='margin-bottom:10px;'><label><input type='checkbox' onchange='toggleNoteBox(this)' ${checked}/> ${label}</label>${noteBox}</div>`;
+        }).join('')}
+      </div>
+    `;
+    const btn = accordion.querySelector('button');
+    const content = accordion.querySelector('div');
+    btn.onclick = () => {
+      content.style.display = content.style.display === 'none' ? 'block' : 'none';
+    };
+    container.appendChild(accordion);
+  });
+}
+
+function toggleNoteBox(cb) {
+  const parent = cb.closest('div');
+  const existing = parent.querySelector('textarea');
+  if (cb.checked && !existing) {
+    const note = document.createElement('textarea');
+    note.className = 'accordion-note';
+    note.style = 'width:100%;margin-top:6px;';
+    parent.appendChild(note);
+  } else if (!cb.checked && existing) {
+    existing.remove();
+  }
+  updateProgressBar();
+}
+
+function updateProgressBar() {
+  const all = document.querySelectorAll('#accordionSectionContainer input[type=checkbox]');
+  const checked = document.querySelectorAll('#accordionSectionContainer input[type=checkbox]:checked');
+  const percent = all.length > 0 ? Math.round((checked.length / all.length) * 100) : 0;
+  document.getElementById('progressBar').style.width = percent + '%';
+  document.getElementById('progressText').textContent = percent + '%';
+}
+
+function setupSignaturePad() {
+  const canvas = document.getElementById('sigCanvas');
+  window.sigPad = new SignaturePad(canvas);
+}
+
+function exportWorkOrderPDF() {
+  const container = document.querySelector('#workOrderModal > div');
+  html2canvas(container).then(canvas => {
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jspdf.jsPDF('p', 'pt', 'a4');
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('Work_Order.pdf');
+  });
+}
+
+function emailWorkOrderSummary() {
+  const checkedItems = Array.from(document.querySelectorAll('#accordionSectionContainer input[type=checkbox]:checked')).map(cb => {
+    const label = cb.parentElement.textContent.trim();
+    const note = cb.closest('div').querySelector('textarea')?.value;
+    return `${label}${note ? `\nNote: ${note}` : ''}`;
+  });
+  const name = document.getElementById('signName').value;
+  const date = document.getElementById('signDate').value;
+  const subject = encodeURIComponent('Work Order Checklist');
+  const body = encodeURIComponent(`Checked Items:\n\n${checkedItems.join('\n')}\n\nSigned by: ${name} on ${date}`);
+  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+}
+
+
+function renderCheckedRoomTasks() {
+  const container = document.getElementById('roomTasksContainer');
+  const rooms = document.querySelectorAll('#roomsContainer fieldset');
+
+  rooms.forEach((room, index) => {
+    const roomName = room.querySelector('select').value;
+    const taskItems = room.querySelectorAll('.task-item');
+    const checked = Array.from(taskItems).filter(item => item.querySelector('input[type=checkbox]').checked);
+
+    if (checked.length > 0) {
+      const section = document.createElement('div');
+      section.style.marginBottom = '20px';
+      section.innerHTML = `
+        <h4 style="margin-bottom:6px;">${roomName}</h4>
+        <ul class="sortable-tasks" data-room="${index}" style="padding-left:20px;list-style:none;"></ul>
+      `;
+      const list = section.querySelector('ul');
+
+      checked.forEach((item, i) => {
+        const label = item.querySelector('label').textContent.trim();
+        const disposition = item.querySelector('select')?.value || '';
+        const li = document.createElement('li');
+        li.setAttribute('draggable', 'true');
+        li.className = 'task-draggable';
+        li.style = 'margin-bottom:10px;padding:6px;border:1px solid #ccc;border-radius:6px;background:#f9f9f9;cursor:grab;';
+        li.innerHTML = `
+          <div><strong>${label}</strong> — ${disposition}</div>
+          <textarea class="task-note" placeholder="Task notes..." style="width:100%;margin-top:6px;"></textarea>
         `;
-
-        // Content card for shadow/background
-        const card = document.createElement('div');
-        card.style = `
-          background: #fff;
-          margin: 40px auto 40px auto;
-          max-width: 700px;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-          border-radius: 16px;
-          padding: 32px 24px 32px 24px;
-        `;
-
-        // Build Work Order HTML
-        let html = `<div style="text-align:center;margin-bottom:12px;">
-            <img src="https://kamloopsbuilders.ca/assets/logo.png" style="height:48px;margin-bottom:10px;">
-            <h2 style="color:#E65C00;margin:0 0 4px 0;">Work Order</h2>
-          </div>
-          <div style="margin-bottom:12px;">
-            <strong>Address:</strong> ${document.getElementById('siteAddress').value || ""}
-          </div>
-          <div style="margin-bottom:16px;">
-            <strong>Client:</strong> ${document.getElementById('clientName').value || ""}
-          </div>
-          <hr style="margin:16px 0 20px 0;">`;
-
-        // Checklist Items
-        html += `<div style="margin-bottom:18px;"><strong style="color:#E65C00;">Checklist</strong><ul style="margin:0 0 0 22px;padding:0;">`;
-        [['Site Conditions','siteConditionsList'],['Site Security','siteSecurityList'],['Special Client Requests','specialRequestsList']].forEach(([label, id]) => {
-          document.querySelectorAll(`#${id} input[type=checkbox]:checked`).forEach(chk => {
-            const note = document.getElementById(`${id}-note-${chk.id.split('-').pop()}`)?.value || "";
-            html += `<li style="margin-bottom:7px;">☑ <span style="font-weight:500;">${chk.value}</span>${note ? `<span style='display:block;margin-left:25px;color:#666;font-size:0.95em;'>Note: ${note}</span>` : ''}</li>`;
-          });
-        });
-        html += `</ul></div>`;
-
-        // Room Tasks
-        document.querySelectorAll('#roomsContainer fieldset').forEach(fs => {
-          const room = fs.querySelector('select').value;
-          const tasks = fs.querySelectorAll('.task-item');
-          const checked = Array.from(tasks).filter(t => t.querySelector('input[type=checkbox]').checked);
-          if (checked.length > 0) {
-            html += `<div style="margin-top:12px;"><strong>${room}</strong><ul style="margin:0 0 0 22px;padding:0;">`;
-            checked.forEach(t => {
-              const name = t.querySelector('label').textContent.trim();
-              const action = t.querySelector('select').value;
-              html += `<li style="margin-bottom:5px;">☑ ${name} <span style="color:#666;font-size:0.96em;">— ${action}</span></li>`;
-            });
-            html += `</ul></div>`;
-          }
-        });
-
-        // Download and Close buttons
-        html += `<div style="text-align:right;margin-top:28px;">
-            <button class="btn btn-primary" onclick="downloadWorkOrderAsImage()" style="width:auto;display:inline-block;padding:10px 24px;font-size:1.12em;">Download as JPEG</button>
-            <button class="btn btn-custom" onclick="document.getElementById('simpleWorkOrder').remove()" style="width:auto;display:inline-block;padding:10px 20px;margin-left:12px;">Close</button>
-          </div>`;
-
-        card.innerHTML = html;
-        container.appendChild(card);
-        document.body.appendChild(container);
+        list.appendChild(li);
       });
 
-      // JPEG Export Function for Work Order
-      window.downloadWorkOrderAsImage = function() {
-        const card = document.querySelector('#simpleWorkOrder > div');
-        html2canvas(card, {backgroundColor: "#fff", scale: 2}).then(canvas => {
-          const link = document.createEl
+      const photoInput = room.querySelector('input[type=file]');
+      if (photoInput && photoInput.files.length > 0) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          img.alt = roomName + ' Photo';
+          img.style = 'max-width:200px;display:block;margin-top:10px;border:1px solid #ccc;';
+          section.appendChild(img);
+        };
+        reader.readAsDataURL(photoInput.files[0]);
+      }
+
+      container.appendChild(section);
+    }
+  });
+
+  enableTaskSorting();
+}
+
+function enableTaskSorting() {
+  const lists = document.querySelectorAll('.sortable-tasks');
+  lists.forEach(list => {
+    let draggingEl;
+    list.addEventListener('dragstart', e => {
+      draggingEl = e.target;
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    list.addEventListener('dragover', e => {
+      e.preventDefault();
+      const target = e.target.closest('li');
+      if (target && target !== draggingEl) {
+        const rect = target.getBoundingClientRect();
+        const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
+        target.parentNode.insertBefore(draggingEl, next ? target.nextSibling : target);
+      }
+    });
+  });
+}
+
+function exportWorkOrderPDF() {
+  const container = document.querySelector('#workOrderModal > div');
+  html2canvas(container).then(canvas => {
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jspdf.jsPDF('p', 'pt', 'a4');
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('Work_Order.pdf');
+  });
+}
+
+function emailWorkOrderSummary() {
+  const checkedItems = [];
+
+  document.querySelectorAll('#accordionSectionContainer input[type=checkbox]:checked').forEach(cb => {
+    const label = cb.parentElement.textContent.trim();
+    const note = cb.closest('div').querySelector('textarea')?.value;
+    checkedItems.push(`${label}${note ? '\nNote: ' + note : ''}`);
+  });
+
+  document.querySelectorAll('.sortable-tasks').forEach(list => {
+    const room = list.closest('div').querySelector('h4')?.textContent || 'Room';
+    checkedItems.push(`\n${room}`);
+    list.querySelectorAll('li').forEach(li => {
+      const task = li.querySelector('strong')?.textContent || '';
+      const disp = li.innerText.split('—')[1]?.split('\n')[0]?.trim() || '';
+      const note = li.querySelector('textarea')?.value || '';
+      checkedItems.push(`- ${task} — ${disp}${note ? '\n  Note: ' + note : ''}`);
+    });
+  });
+
+  const name = document.getElementById('signName').value;
+  const date = document.getElementById('signDate').value;
+  const subject = encodeURIComponent('Work Order Checklist');
+  const body = encodeURIComponent(`Checked Items:\n\n${checkedItems.join('\n')}\n\nSigned by: ${name} on ${date}`);
+  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+}
+
+function exportWorkOrderPDF() {
+  const container = document.querySelector('#workOrderModal > div');
+  html2canvas(container).then(canvas => {
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jspdf.jsPDF('p', 'pt', 'a4');
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('Work_Order.pdf');
+  });
+}
+
+function emailWorkOrderSummary() {
+  const checkedItems = Array.from(document.querySelectorAll('#accordionSectionContainer input[type=checkbox]:checked')).map(cb => {
+    const label = cb.parentElement.textContent.trim();
+    const note = cb.closest('div').querySelector('textarea')?.value;
+    return `${label}${note ? `\nNote: ${note}` : ''}`;
+  });
+  const name = document.getElementById('signName').value;
+  const date = document.getElementById('signDate').value;
+  const subject = encodeURIComponent('Work Order Checklist');
+  const body = encodeURIComponent(`Checked Items:\n\n${checkedItems.join('\n')}\n\nSigned by: ${name} on ${date}`);
+  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+}
+
+function renderCheckedRoomTasks() {
+  const container = document.getElementById('roomTasksContainer');
+  const rooms = document.querySelectorAll('#roomsContainer fieldset');
+
+  rooms.forEach(room => {
+    const roomName = room.querySelector('select').value;
+    const taskItems = room.querySelectorAll('.task-item');
+    const checked = Array.from(taskItems).filter(item => item.querySelector('input[type=checkbox]').checked);
+
+    if (checked.length > 0) {
+      const section = document.createElement('div');
+      section.style.marginBottom = '20px';
+      section.innerHTML = `<h4 style="margin-bottom:6px;">${roomName}</h4><ul style="padding-left:20px;"></ul>`;
+      const list = section.querySelector('ul');
+
+      checked.forEach(item => {
+        const label = item.querySelector('label').textContent.trim();
+        const disposition = item.querySelector('select')?.value || '';
+        const li = document.createElement('li');
+        li.textContent = `${label} — ${disposition}`;
+        list.appendChild(li);
+      });
+
+      const photoInput = room.querySelector('input[type=file]');
+      if (photoInput && photoInput.files.length > 0) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          img.alt = roomName + ' Photo';
+          img.style = 'max-width:200px;display:block;margin-top:10px;border:1px solid #ccc;';
+          section.appendChild(img);
+        };
+        reader.readAsDataURL(photoInput.files[0]);
+      }
+
+      container.appendChild(section);
+    }
+  });
+}
+
+renderCheckedRoomTasks();
+// WORK ORDER ENHANCEMENT END
+
+
+        const photoPromises = [];
+        document.querySelectorAll('#roomsContainer fieldset').forEach(fs => {
+          const idx = fs.id.split('-')[1];
+          const input = fs.querySelector('input[type=file]');
+          if (input && input.files[0]) {
+            photoPromises.push(new Promise(res => {
+              const reader = new FileReader();
+              reader.onload = () => res({ idx, dataURL: reader.result });
+              reader.readAsDataURL(input.files[0]);
+            }));
+          } else {
+            photoPromises.push(Promise.resolve({ idx, dataURL: null }));
+          }
+        });
+        Promise.all(photoPromises).then(photoResults => {
+          let html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Work Order</title><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet"><style>body{font-family:'Montserrat',sans-serif;margin:20px;}h2,h3{margin-top:1em;}ul{list-style:none;padding:0;}li{margin-bottom:.5em;}img{max-width:150px;margin:5px;border:1px solid #ccc;} .note{color:#555;font-size:.9em;margin-left:24px;}</style></head><body>`;
+          html += `<h2>Work Order</h2><p><strong>Address:</strong> ${document.getElementById('siteAddress').value}</p><p><strong>Client:</strong> ${document.getElementById('clientName').value}</p>`;
+          html += `<h3>Personnel</h3><ul>`;
+          document.querySelectorAll('.personnel-item').forEach(div => {
+            const role = div.querySelector('select').value;
+            const name = div.querySelector('input[type=text]').value;
+            const phone = div.querySelector('input[type=tel]').value;
+            html += `<li>${role}: ${name} (${phone})</li>`;
+          });
+          html += `</ul>`;
+          [['Site Conditions','siteConditionsList'],['Site Security','siteSecurityList'],['Special Client Requests','specialRequestsList']].forEach(([title,id]) => {
+            html += `<h3>${title}</h3><ul>`;
+            document.querySelectorAll(`#${id} input[type=checkbox]`).forEach(chk => {
+              if (chk.checked) {
+                const note = document.getElementById(`${id}-note-${chk.id.split('-').pop()}`);
+                html += `<li>☑ ${chk.value}` + (note && note.value ? `<div class="note">Note: ${note.value}</div>` : '') + `</li>`;
+              }
+            });
+            html += `</ul>`;
+          });
+          html += `<h3>Demolition Tasks</h3>`;
+          document.querySelectorAll('#roomsContainer fieldset').forEach(fs => {
+            const idx = fs.id.split('-')[1];
+            const roomType = fs.querySelector('select').value;
+            html += `<h4>${roomType}</h4><ul>`;
+            fs.querySelectorAll('.task-item').forEach(item => {
+              const cb = item.querySelector('input[type=checkbox]');
+              if (cb.checked) {
+                const disp = item.querySelector('select').value;
+                html += `<li>☑ ${cb.nextSibling.textContent} — ${disp}</li>`;
+              }
+            });
+            html += `</ul>`;
+            const photoObj = photoResults.find(p => p.idx == idx);
+            if (photoObj && photoObj.dataURL) {
+              html += `<img src="${photoObj.dataURL}" alt="Room ${+idx+1} photo">`;
+            }
+          });
+          html += `</body></html>`;
+          const blob = new Blob([html], { type: 'text/html' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'Work_Order.html'; a.click();
+        });
+      });
+    });
+  
+
+      // Site location capture
+<!-- WORK ORDER ENHANCEMENT END -->
+      let siteCoords = null;
+      document.getElementById('captureLocationBtn').addEventListener('click', () => {
+        if (!navigator.geolocation) {
+          alert('Geolocation not supported on this device.');
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(pos => {
+          siteCoords = pos.coords;
+          const disp = document.getElementById('siteLocationDisplay');
+          disp.textContent = `Latitude: ${pos.coords.latitude.toFixed(6)}, Longitude: ${pos.coords.longitude.toFixed(6)}`;
+        }, err => {
+          alert('Unable to retrieve location: ' + err.message);
+        });
+      });
+
+    
+document.getElementById('toWorkOrderBtn').addEventListener('click', () => {
+  document.getElementById('simpleWorkOrder')?.remove();
+  const container = document.createElement('div');
+  container.id = 'simpleWorkOrder';
+  container.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;z-index:9999;overflow:auto;padding:20px;font-family:Montserrat,sans-serif;';
+  const card = document.createElement('div');
+  card.style = 'max-width:800px;margin:40px auto;background:#fff;padding:24px;border-radius:8px;box-shadow:0 0 12px rgba(0,0,0,0.15);';
+  let html = `<h2 style='color:#E65C00;'>Work Order</h2>`;
+  html += `<p><strong>Address:</strong> ${document.getElementById('siteAddress').value}</p>`;
+  html += `<p><strong>Client:</strong> ${document.getElementById('clientName').value}</p>`;
+  html += `<h3>Checklist</h3><ul>`;
+  [['Site Conditions','siteConditionsList'],['Site Security','siteSecurityList'],['Special Client Requests','specialRequestsList']].forEach(([label, id]) => {
+    document.querySelectorAll(`#${id} input[type=checkbox]:checked`).forEach(chk => {
+      const note = document.getElementById(`${id}-note-${chk.id.split('-').pop()}`)?.value || "";
+      html += `<li>☑ ${chk.value}${note ? `<div style='margin-left:24px;font-size:0.9em;color:#555;'>Note: ${note}</div>` : ''}</li>`;
+    });
+  });
+  html += `</ul>`;
+  document.querySelectorAll('#roomsContainer fieldset').forEach(fs => {
+    const room = fs.querySelector('select').value;
+    const tasks = fs.querySelectorAll('.task-item');
+    const checked = Array.from(tasks).filter(t => t.querySelector('input[type=checkbox]').checked);
+    if (checked.length > 0) {
+      html += `<h4>${room}</h4><ul>`;
+      checked.forEach(t => {
+        const name = t.querySelector('label').textContent.trim();
+        const action = t.querySelector('select').value;
+        html += `<li>☑ ${name} — ${action}</li>`;
+      });
+      html += `</ul>`;
+    }
+  });
+  html += `<div style='text-align:right;margin-top:20px;'>
+    <button class="btn btn-primary" onclick="downloadWorkOrderAsImage()">Download as JPEG</button>
+    <button class="btn btn-custom" onclick="document.getElementById('simpleWorkOrder').remove()">Close</button>
+  </div>`;
+  card.innerHTML = html;
+  container.appendChild(card);
+  document.body.appendChild(container);
+});
+function downloadWorkOrderAsImage() {
+  const card = document.querySelector('#simpleWorkOrder > div');
+  html2canvas(card, {backgroundColor: "#fff", scale: 2}).then(canvas => {
+    const link = document.createElement('a');
+    link.download = 'Work_Order.jpg';
+    link.href = canvas.toDataURL('image/jpeg', 1.0);
+    link.click();
+  });
+}
+</script>
+</body>
+</html>
