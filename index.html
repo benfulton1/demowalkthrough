@@ -229,335 +229,98 @@ canvas, input, textarea, select, button {
         <!-- WORK ORDER ENHANCEMENT START -->
 
 
-// WORK ORDER ENHANCEMENT START
+// --- SIMPLIFIED WORK ORDER GENERATION (STATIC, PRINTER/IMAGE FRIENDLY) ---
 document.getElementById('toWorkOrderBtn').addEventListener('click', () => {
+  // Remove any existing modal
+  document.getElementById('simpleWorkOrder')?.remove();
+
+  // Modal wrapper
   const container = document.createElement('div');
-  container.id = 'workOrderModal';
+  container.id = 'simpleWorkOrder';
   container.style = `
     position: fixed;
     top: 0; left: 0;
     width: 100vw; height: 100vh;
-    background-color: rgba(0,0,0,0.6);
-    display: flex;
-    justify-content: center;
-    align-items: start;
-    padding: 2vh;
-    overflow-y: auto;
+    background: rgba(245,245,245,0.99);
+    color: #222;
+    padding: 0;
     z-index: 9999;
-  `;
-
-  const inner = document.createElement('div');
-  inner.style = `
-    background: #fff;
-    padding: 20px;
-    border-radius: 12px;
-    width: 100%;
-    max-width: 800px;
+    overflow: auto;
     font-family: Montserrat, sans-serif;
   `;
 
-  inner.innerHTML = `
-    <button onclick="this.closest('#workOrderModal').remove()" style="float:right;font-size:1.5em;border:none;background:none;">&times;</button>
-    <h2 style="color:#E65C00;">Work Order Summary</h2>
-    <div id="accordionSectionContainer"></div><h3 style="margin-top:30px;">Room Tasks</h3><div id="roomTasksContainer"></div>
-    <h3 style="margin-top:20px;">Digital Sign-off</h3>
-    <canvas id="sigCanvas" width="400" height="120" style="border:1px solid #ccc;border-radius:6px;"></canvas>
-    <input type="text" id="signName" placeholder="Printed Name" style="display:block;width:100%;margin-top:10px;padding:6px;">
-    <input type="date" id="signDate" style="display:block;width:100%;margin-top:6px;padding:6px;">
-    <h3 style="margin-top:20px;">Progress</h3>
-    <div style="background:#eee;height:20px;border-radius:10px;overflow:hidden;">
-      <div id="progressBar" style="background:#E65C00;width:0%;height:100%;transition:width 0.3s;"></div>
-    </div>
-    <p style="text-align:right;"><span id="progressText">0%</span> complete</p>
-    <div style="text-align:right;margin-top:20px;">
-      <button class="btn btn-secondary" onclick="exportWorkOrderPDF()">Download PDF</button>
-      <button class="btn btn-primary" onclick="emailWorkOrderSummary()">Email Checklist</button>
-    </div>
+  // Content card for shadow/background
+  const card = document.createElement('div');
+  card.style = `
+    background: #fff;
+    margin: 40px auto 40px auto;
+    max-width: 700px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    border-radius: 16px;
+    padding: 32px 24px 32px 24px;
   `;
 
-  container.appendChild(inner);
-  document.body.appendChild(container);
+  // Build Work Order HTML
+  let html = `<div style="text-align:center;margin-bottom:12px;">
+      <img src="https://kamloopsbuilders.ca/assets/logo.png" style="height:48px;margin-bottom:10px;">
+      <h2 style="color:#E65C00;margin:0 0 4px 0;">Work Order</h2>
+    </div>
+    <div style="margin-bottom:12px;">
+      <strong>Address:</strong> ${document.getElementById('siteAddress').value || ""}
+    </div>
+    <div style="margin-bottom:16px;">
+      <strong>Client:</strong> ${document.getElementById('clientName').value || ""}
+    </div>
+    <hr style="margin:16px 0 20px 0;">`;
 
-  renderAccordionSections();
-  setupSignaturePad();
-  updateProgressBar();
+  // Checklist Items
+  html += `<div style="margin-bottom:18px;"><strong style="color:#E65C00;">Checklist</strong><ul style="margin:0 0 0 22px;padding:0;">`;
+  [['Site Conditions','siteConditionsList'],['Site Security','siteSecurityList'],['Special Client Requests','specialRequestsList']].forEach(([label, id]) => {
+    document.querySelectorAll(`#${id} input[type=checkbox]:checked`).forEach(chk => {
+      const note = document.getElementById(`${id}-note-${chk.id.split('-').pop()}`)?.value || "";
+      html += `<li style="margin-bottom:7px;">☑ <span style="font-weight:500;">${chk.value}</span>${note ? `<span style='display:block;margin-left:25px;color:#666;font-size:0.95em;'>Note: ${note}</span>` : ''}</li>`;
+    });
+  });
+  html += `</ul></div>`;
+
+  // Room Tasks
+  document.querySelectorAll('#roomsContainer fieldset').forEach(fs => {
+    const room = fs.querySelector('select').value;
+    const tasks = fs.querySelectorAll('.task-item');
+    const checked = Array.from(tasks).filter(t => t.querySelector('input[type=checkbox]').checked);
+    if (checked.length > 0) {
+      html += `<div style="margin-top:12px;"><strong>${room}</strong><ul style="margin:0 0 0 22px;padding:0;">`;
+      checked.forEach(t => {
+        const name = t.querySelector('label').textContent.trim();
+        const action = t.querySelector('select').value;
+        html += `<li style="margin-bottom:5px;">☑ ${name} <span style="color:#666;font-size:0.96em;">— ${action}</span></li>`;
+      });
+      html += `</ul></div>`;
+    }
+  });
+
+  // Download and Close buttons
+  html += `<div style="text-align:right;margin-top:28px;">
+      <button class="btn btn-primary" onclick="downloadWorkOrderAsImage()" style="width:auto;display:inline-block;padding:10px 24px;font-size:1.12em;">Download as JPEG</button>
+      <button class="btn btn-custom" onclick="document.getElementById('simpleWorkOrder').remove()" style="width:auto;display:inline-block;padding:10px 20px;margin-left:12px;">Close</button>
+    </div>`;
+
+  card.innerHTML = html;
+  container.appendChild(card);
+  document.body.appendChild(container);
 });
 
-function renderAccordionSections() {
-  const targets = [
-    { id: 'siteConditionsList', label: 'Site Conditions' },
-    { id: 'siteSecurityList', label: 'Site Security' },
-    { id: 'specialRequestsList', label: 'Special Client Requests' }
-  ];
-  const container = document.getElementById('accordionSectionContainer');
-
-  targets.forEach(section => {
-    const source = document.getElementById(section.id);
-    const accordion = document.createElement('div');
-    accordion.style.margin = '10px 0';
-    accordion.innerHTML = `
-      <button style="width:100%;text-align:left;padding:10px;background:#f7f7f7;border:1px solid #ccc;border-radius:4px;">${section.label}</button>
-      <div style="display:none;padding:10px;border:1px solid #ccc;border-top:none;">
-        ${Array.from(source.querySelectorAll('.checklist-item')).map(item => {
-          const input = item.querySelector('input[type=checkbox]');
-          const label = item.querySelector('label').textContent.trim();
-          const note = item.querySelector('.note-input')?.value || '';
-          const checked = input.checked ? 'checked' : '';
-          const noteBox = input.checked ? `<textarea class='accordion-note' style='width:100%;margin-top:6px;'>${note}</textarea>` : '';
-          return `<div style='margin-bottom:10px;'><label><input type='checkbox' onchange='toggleNoteBox(this)' ${checked}/> ${label}</label>${noteBox}</div>`;
-        }).join('')}
-      </div>
-    `;
-    const btn = accordion.querySelector('button');
-    const content = accordion.querySelector('div');
-    btn.onclick = () => {
-      content.style.display = content.style.display === 'none' ? 'block' : 'none';
-    };
-    container.appendChild(accordion);
+// JPEG Export Function (leave as-is or add after your modal logic)
+function downloadWorkOrderAsImage() {
+  const card = document.querySelector('#simpleWorkOrder > div');
+  html2canvas(card, {backgroundColor: "#fff", scale: 2}).then(canvas => {
+    const link = document.createElement('a');
+    link.download = 'Work_Order.jpg';
+    link.href = canvas.toDataURL('image/jpeg', 1.0);
+    link.click();
   });
 }
-
-function toggleNoteBox(cb) {
-  const parent = cb.closest('div');
-  const existing = parent.querySelector('textarea');
-  if (cb.checked && !existing) {
-    const note = document.createElement('textarea');
-    note.className = 'accordion-note';
-    note.style = 'width:100%;margin-top:6px;';
-    parent.appendChild(note);
-  } else if (!cb.checked && existing) {
-    existing.remove();
-  }
-  updateProgressBar();
-}
-
-function updateProgressBar() {
-  const all = document.querySelectorAll('#accordionSectionContainer input[type=checkbox]');
-  const checked = document.querySelectorAll('#accordionSectionContainer input[type=checkbox]:checked');
-  const percent = all.length > 0 ? Math.round((checked.length / all.length) * 100) : 0;
-  document.getElementById('progressBar').style.width = percent + '%';
-  document.getElementById('progressText').textContent = percent + '%';
-}
-
-function setupSignaturePad() {
-  const canvas = document.getElementById('sigCanvas');
-  window.sigPad = new SignaturePad(canvas);
-}
-
-function exportWorkOrderPDF() {
-  const container = document.querySelector('#workOrderModal > div');
-  html2canvas(container).then(canvas => {
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jspdf.jsPDF('p', 'pt', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save('Work_Order.pdf');
-  });
-}
-
-function emailWorkOrderSummary() {
-  const checkedItems = Array.from(document.querySelectorAll('#accordionSectionContainer input[type=checkbox]:checked')).map(cb => {
-    const label = cb.parentElement.textContent.trim();
-    const note = cb.closest('div').querySelector('textarea')?.value;
-    return `${label}${note ? `\nNote: ${note}` : ''}`;
-  });
-  const name = document.getElementById('signName').value;
-  const date = document.getElementById('signDate').value;
-  const subject = encodeURIComponent('Work Order Checklist');
-  const body = encodeURIComponent(`Checked Items:\n\n${checkedItems.join('\n')}\n\nSigned by: ${name} on ${date}`);
-  window.location.href = `mailto:?subject=${subject}&body=${body}`;
-}
-
-
-function renderCheckedRoomTasks() {
-  const container = document.getElementById('roomTasksContainer');
-  const rooms = document.querySelectorAll('#roomsContainer fieldset');
-
-  rooms.forEach((room, index) => {
-    const roomName = room.querySelector('select').value;
-    const taskItems = room.querySelectorAll('.task-item');
-    const checked = Array.from(taskItems).filter(item => item.querySelector('input[type=checkbox]').checked);
-
-    if (checked.length > 0) {
-      const section = document.createElement('div');
-      section.style.marginBottom = '20px';
-      section.innerHTML = `
-        <h4 style="margin-bottom:6px;">${roomName}</h4>
-        <ul class="sortable-tasks" data-room="${index}" style="padding-left:20px;list-style:none;"></ul>
-      `;
-      const list = section.querySelector('ul');
-
-      checked.forEach((item, i) => {
-        const label = item.querySelector('label').textContent.trim();
-        const disposition = item.querySelector('select')?.value || '';
-        const li = document.createElement('li');
-        li.setAttribute('draggable', 'true');
-        li.className = 'task-draggable';
-        li.style = 'margin-bottom:10px;padding:6px;border:1px solid #ccc;border-radius:6px;background:#f9f9f9;cursor:grab;';
-        li.innerHTML = `
-          <div><strong>${label}</strong> — ${disposition}</div>
-          <textarea class="task-note" placeholder="Task notes..." style="width:100%;margin-top:6px;"></textarea>
-        `;
-        list.appendChild(li);
-      });
-
-      const photoInput = room.querySelector('input[type=file]');
-      if (photoInput && photoInput.files.length > 0) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const img = document.createElement('img');
-          img.src = e.target.result;
-          img.alt = roomName + ' Photo';
-          img.style = 'max-width:200px;display:block;margin-top:10px;border:1px solid #ccc;';
-          section.appendChild(img);
-        };
-        reader.readAsDataURL(photoInput.files[0]);
-      }
-
-      container.appendChild(section);
-    }
-  });
-
-  enableTaskSorting();
-}
-
-function enableTaskSorting() {
-  const lists = document.querySelectorAll('.sortable-tasks');
-  lists.forEach(list => {
-    let draggingEl;
-    list.addEventListener('dragstart', e => {
-      draggingEl = e.target;
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    
-    list.addEventListener('touchstart', e => {
-      draggingEl = e.target.closest('li');
-    });
-    list.addEventListener('touchmove', e => {
-      e.preventDefault();  // prevent scroll during drag
-    }, { passive: false });
-    
-    list.addEventListener('dragover', e => {
-      e.preventDefault();
-      const target = e.target.closest('li');
-      if (target && target !== draggingEl) {
-        const rect = target.getBoundingClientRect();
-        const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
-        target.parentNode.insertBefore(draggingEl, next ? target.nextSibling : target);
-      }
-    });
-  });
-}
-
-function exportWorkOrderPDF() {
-  const container = document.querySelector('#workOrderModal > div');
-  html2canvas(container).then(canvas => {
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jspdf.jsPDF('p', 'pt', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save('Work_Order.pdf');
-  });
-}
-
-function emailWorkOrderSummary() {
-  const checkedItems = [];
-
-  document.querySelectorAll('#accordionSectionContainer input[type=checkbox]:checked').forEach(cb => {
-    const label = cb.parentElement.textContent.trim();
-    const note = cb.closest('div').querySelector('textarea')?.value;
-    checkedItems.push(`${label}${note ? '\nNote: ' + note : ''}`);
-  });
-
-  document.querySelectorAll('.sortable-tasks').forEach(list => {
-    const room = list.closest('div').querySelector('h4')?.textContent || 'Room';
-    checkedItems.push(`\n${room}`);
-    list.querySelectorAll('li').forEach(li => {
-      const task = li.querySelector('strong')?.textContent || '';
-      const disp = li.innerText.split('—')[1]?.split('\n')[0]?.trim() || '';
-      const note = li.querySelector('textarea')?.value || '';
-      checkedItems.push(`- ${task} — ${disp}${note ? '\n  Note: ' + note : ''}`);
-    });
-  });
-
-  const name = document.getElementById('signName').value;
-  const date = document.getElementById('signDate').value;
-  const subject = encodeURIComponent('Work Order Checklist');
-  const body = encodeURIComponent(`Checked Items:\n\n${checkedItems.join('\n')}\n\nSigned by: ${name} on ${date}`);
-  window.location.href = `mailto:?subject=${subject}&body=${body}`;
-}
-
-function exportWorkOrderPDF() {
-  const container = document.querySelector('#workOrderModal > div');
-  html2canvas(container).then(canvas => {
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jspdf.jsPDF('p', 'pt', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save('Work_Order.pdf');
-  });
-}
-
-function emailWorkOrderSummary() {
-  const checkedItems = Array.from(document.querySelectorAll('#accordionSectionContainer input[type=checkbox]:checked')).map(cb => {
-    const label = cb.parentElement.textContent.trim();
-    const note = cb.closest('div').querySelector('textarea')?.value;
-    return `${label}${note ? `\nNote: ${note}` : ''}`;
-  });
-  const name = document.getElementById('signName').value;
-  const date = document.getElementById('signDate').value;
-  const subject = encodeURIComponent('Work Order Checklist');
-  const body = encodeURIComponent(`Checked Items:\n\n${checkedItems.join('\n')}\n\nSigned by: ${name} on ${date}`);
-  window.location.href = `mailto:?subject=${subject}&body=${body}`;
-}
-
-function renderCheckedRoomTasks() {
-  const container = document.getElementById('roomTasksContainer');
-  const rooms = document.querySelectorAll('#roomsContainer fieldset');
-
-  rooms.forEach(room => {
-    const roomName = room.querySelector('select').value;
-    const taskItems = room.querySelectorAll('.task-item');
-    const checked = Array.from(taskItems).filter(item => item.querySelector('input[type=checkbox]').checked);
-
-    if (checked.length > 0) {
-      const section = document.createElement('div');
-      section.style.marginBottom = '20px';
-      section.innerHTML = `<h4 style="margin-bottom:6px;">${roomName}</h4><ul style="padding-left:20px;"></ul>`;
-      const list = section.querySelector('ul');
-
-      checked.forEach(item => {
-        const label = item.querySelector('label').textContent.trim();
-        const disposition = item.querySelector('select')?.value || '';
-        const li = document.createElement('li');
-        li.textContent = `${label} — ${disposition}`;
-        list.appendChild(li);
-      });
-
-      const photoInput = room.querySelector('input[type=file]');
-      if (photoInput && photoInput.files.length > 0) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const img = document.createElement('img');
-          img.src = e.target.result;
-          img.alt = roomName + ' Photo';
-          img.style = 'max-width:200px;display:block;margin-top:10px;border:1px solid #ccc;';
-          section.appendChild(img);
-        };
-        reader.readAsDataURL(photoInput.files[0]);
-      }
-
-      container.appendChild(section);
-    }
-  });
-}
-
-renderCheckedRoomTasks();
-// WORK ORDER ENHANCEMENT END
-
+// --- END SIMPLE WORK ORDER ---
 
         const photoPromises = [];
         document.querySelectorAll('#roomsContainer fieldset').forEach(fs => {
