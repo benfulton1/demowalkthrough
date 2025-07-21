@@ -66,7 +66,7 @@
         <button type="button" id="addRoomBtn" class="btn btn-primary">+ Add Room</button>
         <div id="roomsContainer"></div>
       </fieldset>
-      <!-- Signatures -->
+      <!-- Signature Pads -->
       <div id="signatureContainer"></div>
       <!-- Action Buttons -->
       <button type="button" id="saveJpgBtn" class="btn btn-secondary" style="display:none;">Save copy of form</button>
@@ -147,9 +147,8 @@
     // ==== Rooms & Tasks ====
     const roomList=["Bathroom","Kitchen","Living Room","Bedroom","Dining Room","Home Office","Laundry Room","Garage","Basement","Attic","Patio","Deck","Porch","Hallway","Entryway","Staircase","Exterior Walls","Driveway","Sidewalk","Landscaping Area","Roof"];
     const standardTasks=["Remove wall drywall","Remove ceiling drywall","Remove flooring","Remove doors","Remove trim/moulding","Remove baseboard trim","Asbestos review","Disconnect utilities","General cleanup","Debris removal"];
-    const roomSpecificTasks={ /* full object as above… */ };
+    const roomSpecificTasks={/* full list as before */};
 
-    // Persistence helpers
     function saveRoomPhoto(idx,dataURL){ localStorage.setItem(`room-${idx}-photo`,dataURL); }
     function loadRoomPhoto(idx){ return localStorage.getItem(`room-${idx}-photo`); }
     function insertPhotoPreview(idx,dataURL){
@@ -176,7 +175,6 @@
         sel.value=td.disposition;
       });
     }
-
     function renderTasks(idx,type){
       const cont=document.getElementById(`tasks-${idx}`); cont.innerHTML='';
       const tasks=standardTasks.concat(roomSpecificTasks[type]||[]);
@@ -195,12 +193,9 @@
         ctr.appendChild(sel); div.append(lbl,ctr); cont.appendChild(div);
       });
     }
-
     function addCustomTask(idx){
-      const cont=document.getElementById(`tasks-${idx}`),
-            div=document.createElement('div'); div.className='task-item';
-      const lbl=document.createElement('label'),
-            cb=document.createElement('input'); cb.type='checkbox',
+      const cont=document.getElementById(`tasks-${idx}`), div=document.createElement('div'); div.className='task-item';
+      const lbl=document.createElement('label'), cb=document.createElement('input'); cb.type='checkbox',
             inp=document.createElement('input'); inp.type='text'; inp.placeholder='Custom task'; inp.style.flex='1'; inp.style.marginLeft='8px';
       lbl.append(cb,inp);
       const ctr=document.createElement('div'); ctr.className='task-controls';
@@ -213,18 +208,15 @@
       inp.addEventListener('input',()=>saveCustomTasks(idx));
       ctr.appendChild(sel); div.append(lbl,ctr); cont.appendChild(div);
     }
-
     let roomCount=0;
     document.getElementById('addRoomBtn').addEventListener('click',()=>{
       const idx=roomCount++;
       const fs=document.createElement('fieldset'); fs.id=`room-${idx}`;
       fs.appendChild(Object.assign(document.createElement('legend'),{textContent:`Room ${idx+1}`}));
-
       const sel=document.createElement('select'); sel.name=`rooms[${idx}][type]`;
       roomList.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;sel.appendChild(o);});
       sel.addEventListener('change',()=>{renderTasks(idx,sel.value);loadCustomTasks(idx);const p=loadRoomPhoto(idx);if(p)insertPhotoPreview(idx,p);});
       fs.appendChild(sel);
-
       const photo=document.createElement('input'); photo.type='file'; photo.accept='image/*'; photo.capture='environment';
       photo.addEventListener('change',()=>{
         const f=photo.files[0]; if(f){
@@ -234,115 +226,95 @@
         }
       });
       fs.appendChild(photo);
-
       const tasksDiv=document.createElement('div'); tasksDiv.id=`tasks-${idx}`; fs.appendChild(tasksDiv);
       const cbtn=document.createElement('button'); cbtn.type='button'; cbtn.className='btn btn-custom'; cbtn.textContent='+ Custom Task';
       cbtn.addEventListener('click',()=>{addCustomTask(idx);saveCustomTasks(idx);});
       fs.appendChild(cbtn);
-
       document.getElementById('roomsContainer').appendChild(fs);
       renderTasks(idx,roomList[0]);
       loadCustomTasks(idx);
-      const st=loadRoomPhoto(idx); if(st) insertPhotoPreview(idx,st);
-
+      const st=loadRoomPhoto(idx); if(st)insertPhotoPreview(idx,st);
       localStorage.setItem('roomCount',roomCount);
     });
-
-    // Geolocation
     document.getElementById('captureLocationBtn').addEventListener('click',()=>{
       if(!navigator.geolocation){alert('Geolocation not supported');return;}
       navigator.geolocation.getCurrentPosition(pos=>{
         document.getElementById('siteLocationDisplay').textContent=`Latitude: ${pos.coords.latitude.toFixed(6)}, Longitude: ${pos.coords.longitude.toFixed(6)}`;
-      }, err=>alert('Unable to retrieve location: '+err.message));
+      },err=>alert('Unable to retrieve location: '+err.message));
     });
-
     // Restore fields
     const sa=localStorage.getItem('siteAddress'); if(sa)document.getElementById('siteAddress').value=sa;
     const cn=localStorage.getItem('clientName'); if(cn)document.getElementById('clientName').value=cn;
     const rc=+localStorage.getItem('roomCount')||0; for(let i=0;i<rc;i++)document.getElementById('addRoomBtn').click();
-
     // Save on unload
-    window.addEventListener('beforeunload',()=>{
-      localStorage.setItem('siteAddress',document.getElementById('siteAddress').value);
-      localStorage.setItem('clientName',document.getElementById('clientName').value);
-    });
+    window.addEventListener('beforeunload',()=>{localStorage.setItem('siteAddress',document.getElementById('siteAddress').value);localStorage.setItem('clientName',document.getElementById('clientName').value);});
 
     // ==== Work Order Modal ====
     document.getElementById('toWorkOrderBtn').addEventListener('click',()=>{
       document.getElementById('workOrderModal')?.remove();
       const overlay=document.createElement('div'); overlay.id='workOrderModal';
       Object.assign(overlay.style,{position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.6)',zIndex:9999,display:'flex',justifyContent:'center',alignItems:'flex-start',overflowY:'auto',padding:'2vh'});
-      const modal=document.createElement('div');
-      Object.assign(modal.style,{background:'#fff',borderRadius:'12px',padding:'20px',maxWidth:'800px',width:'100%'});
+      const modal=document.createElement('div'); Object.assign(modal.style,{background:'#fff',borderRadius:'12px',padding:'20px',maxWidth:'800px',width:'100%'});              
       modal.innerHTML=`
-        <button id="closeWOModal" style="float:right;font-size:1.5em;border:none;background:none;">&times;</button>
+        <button id="closeWOModal" style="position:absolute;top:12px;right:12px;font-size:1.5em;border:none;background:none;cursor:pointer;">×</button>
         <h2 style="color:#ff8c00;">Work Order Summary</h2>
         <div id="accordionSectionContainer"></div>
         <h3 style="margin-top:20px;">Room Tasks</h3>
         <div id="roomTasksContainer"></div>
         <h3 style="margin-top:20px;">Digital Sign-off</h3>
-        <canvas id="woSigCanvas" width="400" height="120" style="border:1px solid #ccc;border-radius:6px;"></canvas>
-        <input type="text" id="woSignName" placeholder="Printed Name" style="display:block;width:100%;margin-top:10px;padding:6px;">
-        <input type="date" id="woSignDate" style="display:block;width:100%;margin-top:6px;padding:6px;">
-        <div style="text-align:right;margin-top:20px;">
-          <button id="woPdfBtn" class="btn btn-secondary">Download PDF</button>
+        <canvas id="woSigCanvas" width="400" height="120" style="border:1px solid #ccc;border-radius:6px;display:block;margin-bottom:10px;"></canvas>
+        <input type="text" id="woSignName" placeholder="Printed Name" style="display:block;width:100%;margin-bottom:6px;padding:6px;">
+        <input type="date" id="woSignDate" style="display:block;width:100%;margin-bottom:20px;padding:6px;">
+        <div style="text-align:right;">
+          <button id="woPdfBtn" class="btn btn-secondary" style="margin-right:8px;">Download PDF</button>
+          <button id="woJpgBtn" class="btn btn-secondary" style="margin-right:8px;">Download JPG</button>
           <button id="woEmailBtn" class="btn btn-primary">Email Checklist</button>
         </div>`;
       overlay.appendChild(modal); document.body.appendChild(overlay);
-
       document.getElementById('closeWOModal').onclick=()=>overlay.remove();
 
-      // Accordion: checklists
+      // Accordion sections
       [['Site Conditions','siteConditionsList'],['Site Security','siteSecurityList'],['Special Client Requests','specialRequestsList']].forEach(([label,id])=>{
-        const acc=document.createElement('div'); acc.style.margin='10px 0';
-        const btn=document.createElement('button');
-        Object.assign(btn.style,{width:'100%',textAlign:'left',padding:'10px',background:'#f7f7f7',border:'1px solid #ccc',borderRadius:'4px'});
-        btn.textContent=label;
-        const content=document.createElement('div');
-        Object.assign(content.style,{display:'none',padding:'10px',border:'1px solid #ccc',borderTop:'none'});
+        const section=document.createElement('div'); section.style.margin='10px 0';
+        const btn=document.createElement('button'); Object.assign(btn.style,{width:'100%',textAlign:'left',padding:'10px',background:'#f7f7f7',border:'1px solid #ccc',borderRadius:'4px',cursor:'pointer'}); btn.textContent=label;
+        const content=document.createElement('div'); Object.assign(content.style,{display:'none',padding:'10px',border:'1px solid #ccc',borderTop:'none'});
         document.querySelectorAll(`#${id} input[type="checkbox"]`).forEach(chk=>{
           if(chk.checked){
             const row=document.createElement('div'); row.style.marginBottom='8px';
             const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=true;
             row.append(cb,' '+chk.value);
             const note=document.getElementById(`${id}-note-${chk.id.split('-').pop()}`).value;
-            if(note){
-              const p=document.createElement('p'); p.textContent='Note: '+note; p.style.marginLeft='24px'; p.style.color='#555';
-              row.appendChild(p);
-            }
+            if(note){ const p=document.createElement('p'); p.textContent='Note: '+note; p.style.marginLeft='24px'; p.style.color='#555'; row.appendChild(p); }
             content.appendChild(row);
           }
         });
         btn.onclick=()=>content.style.display=(content.style.display==='none'?'block':'none');
-        acc.append(btn,content); modal.querySelector('#accordionSectionContainer').appendChild(acc);
+        section.append(btn,content); modal.querySelector('#accordionSectionContainer').appendChild(section);
       });
 
-      // Room tasks
-      document.querySelectorAll('#roomsContainer fieldset').forEach(fs=>{
+      // Room tasks summary
+      modal.querySelectorAll('#roomsContainer fieldset').forEach(fs=>{
         const roomName=fs.querySelector('select').value;
-        const items=Array.from(fs.querySelectorAll('.task-item')).filter(it=>it.querySelector('input[type="checkbox"]').checked);
-        if(!items.length) return;
+        const checkedItems=Array.from(fs.querySelectorAll('.task-item')).filter(item=>item.querySelector('input[type="checkbox"]').checked);
+        if(!checkedItems.length) return;
         const sec=document.createElement('div'); sec.style.marginBottom='20px';
         const h4=document.createElement('h4'); h4.textContent=roomName; sec.appendChild(h4);
         const ul=document.createElement('ul'); ul.className='sortable-tasks'; ul.style.paddingLeft='20px';
-        items.forEach(it=>{
+        checkedItems.forEach(item=>{
           const li=document.createElement('li'); li.draggable=true;
           Object.assign(li.style,{marginBottom:'10px',padding:'6px',border:'1px solid #ccc',borderRadius:'6px',background:'#f9f9f9',cursor:'grab'});
-          const lbl=it.querySelector('label').textContent.trim();
-          const disp=it.querySelector('select')?.value||'';
-          li.textContent=`${lbl} — ${disp}`;
-          const note=it.querySelector('textarea')?.value;
-          if(note){
-            const p=document.createElement('p'); p.textContent='Note: '+note; p.style.marginLeft='12px'; p.style.color='#555';
-            li.appendChild(p);
-          }
+          const label=item.querySelector('label').textContent.trim();
+          const disp=item.querySelector('select')?.value||'';
+          li.textContent=`${label} — ${disp}`;
+          const note=item.querySelector('textarea')?.value;
+          if(note){ const p=document.createElement('p'); p.textContent='Note: '+note; p.style.marginLeft='12px'; p.style.color='#555'; li.appendChild(p); }
           ul.appendChild(li);
         });
         const inp=fs.querySelector('input[type="file"]');
         if(inp&&inp.files[0]){
           const reader=new FileReader();
           reader.onload=e=>{
-            const img=document.createElement('img'); img.src=e.target.result; img.style.maxWidth='150px'; img.style.display='block'; img.style.marginTop='6px';
+            const img=document.createElement('img'); img.src=e.target.result; img.style.maxWidth='150px'; img.style.display='block'; img.style.marginTop='6px'; 
             sec.appendChild(img);
           };
           reader.readAsDataURL(inp.files[0]);
@@ -350,17 +322,17 @@
         sec.appendChild(ul); modal.querySelector('#roomTasksContainer').appendChild(sec);
       });
 
-      // Drag-n-drop
+      // Drag & drop
       modal.querySelectorAll('.sortable-tasks').forEach(ul=>{
-        let dragEl=null;
-        ul.addEventListener('dragstart',e=>{dragEl=e.target; e.dataTransfer.effectAllowed='move';});
+        let draggingEl=null;
+        ul.addEventListener('dragstart',e=>{draggingEl=e.target;e.dataTransfer.effectAllowed='move';});
         ul.addEventListener('dragover',e=>{
           e.preventDefault();
           const tgt=e.target.closest('li');
-          if(tgt && tgt!==dragEl){
+          if(tgt && tgt!==draggingEl){
             const rect=tgt.getBoundingClientRect();
-            const half=(e.clientY-rect.top)/(rect.bottom-rect.top)>0.5;
-            tgt.parentNode.insertBefore(dragEl,half?tgt.nextSibling:tgt);
+            const after=(e.clientY-rect.top)/(rect.bottom-rect.top)>0.5;
+            tgt.parentNode.insertBefore(draggingEl, after?tgt.nextSibling:tgt);
           }
         });
       });
@@ -371,16 +343,22 @@
       // PDF export
       modal.querySelector('#woPdfBtn').addEventListener('click',()=>{
         html2canvas(modal,{scale:2,backgroundColor:'#fff'}).then(c=>{
-          const link=document.createElement('a'); link.download='Work_Order.pdf'; link.href=c.toDataURL(); link.click();
+          const link=document.createElement('a'); link.download='Work_Order.pdf'; link.href=c.toDataURL('image/png'); link.click();
+        });
+      });
+
+      // JPG export
+      modal.querySelector('#woJpgBtn').addEventListener('click',()=>{
+        html2canvas(modal,{scale:2,backgroundColor:'#fff'}).then(c=>{
+          const link=document.createElement('a'); link.download='Work_Order.jpg'; link.href=c.toDataURL('image/jpeg',0.95); link.click();
         });
       });
 
       // Email summary
       modal.querySelector('#woEmailBtn').addEventListener('click',()=>{
         let body='';
-        modal.querySelectorAll('input[type="checkbox"]:checked').forEach(cb=>{ body+=cb.parentElement.textContent.trim()+'\n'; });
-        const nm=modal.querySelector('#woSignName').value;
-        const dt=modal.querySelector('#woSignDate').value;
+        modal.querySelectorAll('input[type="checkbox"]:checked').forEach(cb=>{body+=cb.parentElement.textContent.trim()+'\n';});
+        const nm=modal.querySelector('#woSignName').value, dt=modal.querySelector('#woSignDate').value;
         body+=`\nSigned by: ${nm} on ${dt}`;
         window.location.href=`mailto:?subject=Work Order Checklist&body=${encodeURIComponent(body)}`;
       });
