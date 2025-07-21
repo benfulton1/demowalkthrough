@@ -147,7 +147,263 @@
     // ==== Rooms & Tasks ====
     const roomList=["Bathroom","Kitchen","Living Room","Bedroom","Dining Room","Home Office","Laundry Room","Garage","Basement","Attic","Patio","Deck","Porch","Hallway","Entryway","Staircase","Exterior Walls","Driveway","Sidewalk","Landscaping Area","Roof"];
     const standardTasks=["Remove wall drywall","Remove ceiling drywall","Remove flooring","Remove doors","Remove trim/moulding","Remove baseboard trim","Asbestos review","Disconnect utilities","General cleanup","Debris removal"];
-    const roomSpecificTasks={/* full list as before */};
+    const roomSpecificTasks={// ─── NEW: Extended roomSpecificTasks ────────────────────────────────
+const roomSpecificTasks = {
+  "Bathroom": [
+    "Remove bathtub",
+    "Remove shower pan",
+    "Remove vanity/cabinetry",
+    "Remove sink and fixtures",
+    "Remove toilet",
+    "Remove wall tile",
+    "Remove floor tile",
+    "Remove drywall",
+    "Remove insulation",
+    "Remove lighting fixtures"
+  ],
+  "Kitchen": [
+    "Remove upper cabinets",
+    "Remove base cabinets",
+    "Remove countertops",
+    "Remove sink and faucet",
+    "Remove appliances (fridge, dishwasher)",
+    "Remove backsplash tile",
+    "Remove island",
+    "Remove range hood",
+    "Remove lighting fixtures",
+    "Remove plumbing fixtures"
+  ],
+  "Living Room": [
+    "Remove drywall",
+    "Remove flooring",
+    "Remove baseboards",
+    "Remove window trim",
+    "Remove doors",
+    "Remove built-in shelves",
+    "Remove fireplace surround",
+    "Remove lighting fixtures",
+    "Remove wall coverings",
+    "Remove vents"
+  ],
+  "Bedroom": [
+    "Remove drywall",
+    "Remove flooring",
+    "Remove baseboards",
+    "Remove closet shelving",
+    "Remove window treatments",
+    "Remove doors",
+    "Remove lighting fixtures",
+    "Remove built-in furniture",
+    "Remove outlets",
+    "Remove vents"
+  ],
+  "Dining Room": [
+    "Remove drywall",
+    "Remove flooring",
+    "Remove baseboards",
+    "Remove trim/moulding",
+    "Remove chandelier",
+    "Remove built-in features",
+    "Remove lighting fixtures",
+    "Remove wall paneling",
+    "Remove window treatments",
+    "Remove outlets"
+  ],
+  "Home Office": [
+    "Remove drywall",
+    "Remove flooring",
+    "Remove built-in desks",
+    "Remove shelving",
+    "Remove lighting fixtures",
+    "Remove data outlets",
+    "Remove trim",
+    "Remove baseboards",
+    "Remove wiring",
+    "Remove outlets"
+  ],
+  "Laundry Room": [
+    "Remove washer/dryer hookups",
+    "Remove cabinets",
+    "Remove sink",
+    "Remove plumbing fixtures",
+    "Remove flooring",
+    "Remove lighting fixtures",
+    "Remove vent fan",
+    "Remove tile",
+    "Remove shelving",
+    "Remove outlets"
+  ],
+  "Garage": [
+    "Remove drywall",
+    "Remove shelving",
+    "Remove cabinets",
+    "Remove doors",
+    "Remove windows",
+    "Remove lighting fixtures",
+    "Remove electrical fixtures",
+    "Remove insulation",
+    "Remove hooks",
+    "Remove signage"
+  ],
+  "Basement": [
+    "Remove drywall",
+    "Remove drop ceiling",
+    "Remove flooring",
+    "Remove insulation",
+    "Remove windows",
+    "Remove lighting fixtures",
+    "Remove sump pump cover",
+    "Remove shelving",
+    "Remove tile",
+    "Remove outlets"
+  ],
+  "Attic": [
+    "Remove insulation",
+    "Remove drywall",
+    "Remove flooring",
+    "Remove vents",
+    "Remove lighting fixtures",
+    "Remove wiring",
+    "Remove ductwork",
+    "Remove hatch",
+    "Remove bracing",
+    "Remove panels"
+  ],
+  "Patio": [
+    "Remove pavers",
+    "Remove decking",
+    "Remove railings",
+    "Remove pergola",
+    "Remove lighting fixtures",
+    "Remove planters",
+    "Remove outdoor furniture",
+    "Remove fixtures",
+    "Remove awning",
+    "Remove waterproofing"
+  ],
+  "Deck": [
+    "Remove deck boards",
+    "Remove railings",
+    "Remove support posts",
+    "Remove stairs",
+    "Remove joists",
+    "Remove skirting",
+    "Remove hardware",
+    "Remove lighting fixtures",
+    "Remove fascia",
+    "Remove insulation"
+  ],
+  "Porch": [
+    "Remove flooring",
+    "Remove railings",
+    "Remove columns",
+    "Remove ceiling",
+    "Remove trim",
+    "Remove lighting fixtures",
+    "Remove door frame",
+    "Remove steps",
+    "Remove fixtures",
+    "Remove soffit"
+  ],
+  "Hallway": [
+    "Remove drywall",
+    "Remove flooring",
+    "Remove baseboards",
+    "Remove trim",
+    "Remove lighting fixtures",
+    "Remove wall sconces",
+    "Remove railings",
+    "Remove doors",
+    "Remove vents",
+    "Remove outlets"
+  ],
+  "Entryway": [
+    "Remove drywall",
+    "Remove flooring",
+    "Remove baseboards",
+    "Remove trim",
+    "Remove lighting fixtures",
+    "Remove closet shelving",
+    "Remove doors",
+    "Remove hardware",
+    "Remove paint",
+    "Remove outlets"
+  ],
+  "Staircase": [
+    "Remove treads",
+    "Remove risers",
+    "Remove handrails",
+    "Remove balusters",
+    "Remove lighting fixtures",
+    "Remove carpeting",
+    "Remove trim",
+    "Remove posts",
+    "Remove landing",
+    "Remove hardware"
+  ],
+  "Exterior Walls": [
+    "Remove siding",
+    "Remove trim",
+    "Remove windows",
+    "Remove fixtures",
+    "Remove flashing",
+    "Remove caulking",
+    "Remove soffit",
+    "Remove fascia",
+    "Remove vents",
+    "Remove insulation"
+  ],
+  "Driveway": [
+    "Remove concrete",
+    "Remove asphalt",
+    "Remove pavers",
+    "Remove sealant",
+    "Remove expansion joints",
+    "Remove edging",
+    "Remove debris",
+    "Remove gravel",
+    "Remove markings",
+    "Remove base rock"
+  ],
+  "Sidewalk": [
+    "Remove concrete",
+    "Remove pavers",
+    "Remove sealant",
+    "Remove expansion joints",
+    "Remove edging",
+    "Remove debris",
+    "Remove paint",
+    "Remove weeds",
+    "Remove fixtures",
+    "Remove base rock"
+  ],
+  "Landscaping Area": [
+    "Remove plants",
+    "Remove mulch",
+    "Remove sod",
+    "Remove edging",
+    "Remove irrigation lines",
+    "Remove fencing",
+    "Remove planters",
+    "Remove topsoil",
+    "Remove debris",
+    "Remove fixtures"
+  ],
+  "Roof": [
+    "Remove shingles",
+    "Remove underlayment",
+    "Remove flashing",
+    "Remove gutters",
+    "Remove downspouts",
+    "Remove vents",
+    "Remove skylights",
+    "Remove decking",
+    "Remove insulation",
+    "Remove hardware"
+  ]
+};
+// ────────────────────────────────────────────────────────────────────────
+};
 
     function saveRoomPhoto(idx,dataURL){ localStorage.setItem(`room-${idx}-photo`,dataURL); }
     function loadRoomPhoto(idx){ return localStorage.getItem(`room-${idx}-photo`); }
