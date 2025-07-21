@@ -277,6 +277,233 @@
       const rc=+localStorage.getItem('roomCount')||0;
       for(let i=0;i<rc;i++){ document.getElementById('addRoomBtn').click(); }
     });
+    // ─── NEW SECTION: WORK ORDER + JPEG EXPORT ───────────────────────────────────
+
+// 1. Rename your “Convert to PDF” button in the HTML:
+//    <button id="toPdfBtn" ...>Convert to PDF</button>
+//    ↓
+//    <button id="saveJpgBtn" class="btn btn-secondary" style="display:none;">Save copy of form</button>
+
+// 2. Add a “Convert to Work Order” button if you haven’t already:
+//    <button id="toWorkOrderBtn" class="btn btn-secondary">Convert to Work Order</button>
+
+// 3. Paste this code at the bottom of your existing <script>:
+
+(function(){
+  // Cache selectors
+  const saveJpgBtn   = document.getElementById('saveJpgBtn');
+  const toWorkOrder  = document.getElementById('toWorkOrderBtn');
+  const sigContainer = document.getElementById('signatureContainer');
+
+  // Utility: Check if **all** signature pads have ink
+  function allSigned() {
+    // Assumes you push each SignaturePad instance into window.sigPads[]
+    return window.sigPads && window.sigPads.length
+      && window.sigPads.every(pad => !pad.isEmpty());
+  }
+
+  // Show/hide the Save JPG button whenever signatures change
+  function toggleSaveButton() {
+    saveJpgBtn.style.display = allSigned() ? 'block' : 'none';
+  }
+  // Wire up signature pads on creation
+  // AFTER your code that creates each pad:
+  //   pad.onEnd = toggleSaveButton;
+  //   pad.addEventListener('endStroke', toggleSaveButton);
+
+  // 4. Hook the saveJpgBtn to export as JPEG
+  saveJpgBtn.addEventListener('click', () => {
+    html2canvas(document.getElementById('mainContainer'), {
+      scale: 2,
+      backgroundColor: '#fff'
+    }).then(canvas => {
+      const link = document.createElement('a');
+      link.download = 'Demolition_Walkthrough.jpg';
+      link.href = canvas.toDataURL('image/jpeg', 0.95);
+      link.click();
+    });
+  });
+
+  // ───── WORK ORDER MODAL ─────────────────────────────────────────────────────
+
+  function openWorkOrderModal() {
+    // Prevent duplicates
+    document.getElementById('workOrderModal')?.remove();
+
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'workOrderModal';
+    Object.assign(overlay.style, {
+      position: 'fixed', top:0, left:0, width:'100vw', height:'100vh',
+      background:'rgba(0,0,0,0.6)', zIndex:9999, overflowY:'auto',
+      display:'flex', justifyContent:'center', alignItems:'flex-start', padding:'2em'
+    });
+
+    // Create modal container
+    const modal = document.createElement('div');
+    Object.assign(modal.style, {
+      background:'#fff', borderRadius:'8px', maxWidth:'800px', width:'100%',
+      padding:'20px', position:'relative', fontFamily:'Montserrat,sans-serif'
+    });
+
+    // Close button
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '&times;';
+    Object.assign(closeBtn.style, { position:'absolute', top:'12px', right:'12px', fontSize:'1.5em', border:'none', background:'none', cursor:'pointer' });
+    closeBtn.onclick = () => overlay.remove();
+    modal.appendChild(closeBtn);
+
+    // Title
+    const title = document.createElement('h2');
+    title.textContent = 'Work Order Summary';
+    title.style.color = '#ff8c00';
+    modal.appendChild(title);
+
+    // Accordion for checklists
+    ['Site Conditions','siteConditionsList','Site Security','siteSecurityList','Special Requests','specialRequestsList']
+      .reduce((acc,cur,i,arr)=>{
+        // pairs: [label,id]
+        if(i%2===0){
+          const label=cur, id=arr[i+1];
+          const section = document.createElement('div');
+          section.style.marginBottom='1em';
+          const btn = document.createElement('button');
+          btn.textContent = label;
+          Object.assign(btn.style,{width:'100%',textAlign:'left',padding:'10px',border:'1px solid #ccc',borderRadius:'4px',background:'#f7f7f7'});
+          const content = document.createElement('div');
+          Object.assign(content.style,{display:'none',padding:'10px',border:'1px solid #ccc',borderTop:'none'});
+          // Populate items
+          document.querySelectorAll(`#${id} input[type=checkbox]`).forEach(chk=>{
+            if(chk.checked){
+              const row = document.createElement('div');
+              const labelEl = document.createElement('label');
+              const innerChk = document.createElement('input');
+              innerChk.type='checkbox'; innerChk.checked=true;
+              labelEl.append(innerChk, ' '+chk.value);
+              row.appendChild(labelEl);
+              const noteEl = document.getElementById(`${id}-note-${chk.id.split('-').pop()}`);
+              if(noteEl && noteEl.value){
+                const p = document.createElement('p');
+                p.textContent = 'Note: '+noteEl.value;
+                p.style.marginLeft='24px'; p.style.color='#555'; p.style.fontSize='0.9em';
+                row.appendChild(p);
+              }
+              content.appendChild(row);
+            }
+          });
+          btn.onclick = ()=>content.style.display = content.style.display==='none'?'block':'none';
+          section.append(btn,content);
+          modal.appendChild(section);
+        }
+      },[]);
+
+    // Room tasks summary
+    const tasksTitle = document.createElement('h3');
+    tasksTitle.textContent = 'Room Tasks';
+    modal.appendChild(tasksTitle);
+
+    document.querySelectorAll('#roomsContainer fieldset').forEach((fs,i)=>{
+      const roomName = fs.querySelector('select').value;
+      const items = Array.from(fs.querySelectorAll('.task-item')).filter(item=>item.querySelector('input[type=checkbox]').checked);
+      if(!items.length) return;
+      const sec = document.createElement('div');
+      const h4 = document.createElement('h4'); h4.textContent = roomName; sec.appendChild(h4);
+      const ul = document.createElement('ul'); ul.className='sortable-tasks'; ul.style.paddingLeft='20px';
+      items.forEach(item=>{
+        const li=document.createElement('li');
+        Object.assign(li.style,{marginBottom:'8px',padding:'6px',border:'1px solid #ccc',borderRadius:'4px',background:'#f9f9f9',cursor:'grab'});
+        const label=item.querySelector('label').textContent.trim();
+        const disp=item.querySelector('select')?.value||'';
+        li.textContent = `${label} — ${disp}`;
+        // Task note
+        const txt=item.querySelector('textarea')?.value;
+        if(txt){
+          const p=document.createElement('p');
+          p.textContent='Note: '+txt; p.style.marginLeft='12px'; p.style.color='#555';
+          li.appendChild(p);
+        }
+        ul.appendChild(li);
+      });
+      // Photo
+      const photoInput = fs.querySelector('input[type=file]');
+      if(photoInput && photoInput.files[0]){
+        const reader=new FileReader();
+        reader.onload=e=>{
+          const img=document.createElement('img');
+          img.src=e.target.result; img.style.maxWidth='150px'; img.style.display='block'; img.style.marginTop='10px';
+          sec.appendChild(img);
+        };
+        reader.readAsDataURL(photoInput.files[0]);
+      }
+      sec.appendChild(ul);
+      modal.appendChild(sec);
+    });
+
+    // Drag & drop in modal
+    modal.querySelectorAll('.sortable-tasks').forEach(ul=>{
+      let dragEl=null;
+      ul.addEventListener('dragstart',e=>{ dragEl=e.target; e.dataTransfer.effectAllowed='move'; });
+      ul.addEventListener('dragover',e=>{
+        e.preventDefault();
+        const tgt=e.target.closest('li');
+        if(tgt && tgt!==dragEl){
+          const rect=tgt.getBoundingClientRect();
+          const after=(e.clientY-rect.top)/(rect.bottom-rect.top)>0.5;
+          tgt.parentNode.insertBefore(dragEl, after?tgt.nextSibling:tgt);
+        }
+      });
+    });
+
+    // Signature pad + sign-off inside modal
+    const signH3=document.createElement('h3'); signH3.textContent='Digital Sign-off'; modal.appendChild(signH3);
+    const canvas=document.createElement('canvas'); canvas.id='modalSigCanvas'; canvas.width=400; canvas.height=120;
+    Object.assign(canvas.style,{border:'1px solid #ccc',borderRadius:'6px',display:'block'});
+    modal.appendChild(canvas);
+    const nameInput=document.createElement('input'); nameInput.placeholder='Printed Name'; nameInput.style.margin='8px 0'; modal.appendChild(nameInput);
+    const dateInput=document.createElement('input'); dateInput.type='date'; dateInput.style.marginBottom='12px'; modal.appendChild(dateInput);
+    const sigPadModal = new SignaturePad(canvas);
+
+    // Export & email buttons
+    const btnWrap=document.createElement('div'); btnWrap.style.textAlign='right'; btnWrap.style.marginTop='20px';
+    const pdfBtn=document.createElement('button'); pdfBtn.className='btn btn-secondary'; pdfBtn.textContent='Download PDF';
+    const emailBtn=document.createElement('button'); emailBtn.className='btn btn-primary'; emailBtn.textContent='Email Checklist';
+    btnWrap.append(emailBtn,pdfBtn); modal.appendChild(btnWrap);
+
+    // PDF export of modal
+    pdfBtn.addEventListener('click',()=>{
+      html2canvas(modal,{scale:2,backgroundColor:'#fff'}).then(c=>{
+        const link=document.createElement('a');
+        link.download='Work_Order.pdf'; link.href=c.toDataURL('image/png');
+        link.click();
+      });
+    });
+
+    // Email summary
+    emailBtn.addEventListener('click',()=>{
+      let body='';
+      modal.querySelectorAll('input[type=checkbox]:checked').forEach(cb=>{
+        body += cb.parentElement.textContent.trim() + '\n';
+      });
+      // Include modal signature
+      const sigURL = sigPadModal.toDataURL();
+      // Note: embedding images in mailto is not widely supported; include signature name/date
+      body += `\nSigned by: ${nameInput.value} on ${dateInput.value}\n`;
+      window.location.href = `mailto:?subject=Work Order%20Checklist&body=${encodeURIComponent(body)}`;
+    });
+
+    // Finally, append to DOM
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+  }
+
+  toWorkOrder.addEventListener('click', openWorkOrderModal);
+
+  // Ensure toggleSaveBtn runs when signature pads are created
+  // If you create your signature pads inside addPersonnel logic, call updateSaveBtn() there
+  // and attach pad.onEnd = updateSaveBtn;
+
+})();
+
   </script>
 </body>
 </html>
