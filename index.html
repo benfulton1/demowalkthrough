@@ -15,15 +15,12 @@
     fieldset { border:1px solid #ddd; border-radius:8px; margin-bottom:20px; padding:15px; }
     legend { font-weight:600; font-size:1.1rem; color:#444; }
     label { display:block; margin-bottom:6px; font-weight:500; }
-    input, select, textarea { width:100%; padding:8px; margin-bottom:12px; border:1px solid #ccc; border-radius:4px; }
+    input, select, textarea, button { width:100%; padding:8px; margin-bottom:12px; border:1px solid #ccc; border-radius:4px; }
     textarea { min-height:60px; resize:vertical; }
-    .btn { display:block; width:100%; padding:12px; border:none; border-radius:4px; font-weight:600; cursor:pointer; margin-bottom:12px; }
+    .btn { cursor:pointer; font-weight:600; }
     .btn-primary { background:#ff8c00; color:#fff; }
-    .btn-primary:hover { background:#e67600; }
     .btn-custom { background:#444; color:#fff; }
-    .btn-custom:hover { background:#333; }
     .btn-secondary { background:#007acc; color:#fff; }
-    .btn-secondary:hover { background:#006bb3; }
     .personnel-item, .checklist-item, .task-item { display:flex; flex-wrap:wrap; align-items:center; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #eee; }
     .note-input { display:none; margin-top:6px; }
     .sig-field { margin:16px 0; }
@@ -41,6 +38,7 @@
     <img src="https://kamloopsbuilders.ca/assets/logo.png" alt="Kamloops Builders Logo"/>
     <h1>Interior Elite Demolition Walkthrough</h1>
   </header>
+
   <div class="container" id="mainContainer">
     <h2>Demolition Walkthrough v1.9</h2>
     <p><strong>Timestamp:</strong> <span id="formTimestamp"></span></p>
@@ -73,339 +71,118 @@
       <button type="button" id="toWorkOrderBtn" class="btn btn-secondary">Convert to Work Order</button>
     </form>
   </div>
+
   <div class="footer">&copy; 2025 Kamloops Builders • All rights reserved</div>
 
   <script>
-  document.addEventListener('DOMContentLoaded', ()=> {
-    // ==== Timestamp ====
+  document.addEventListener('DOMContentLoaded', () => {
+    // ---- Timestamp ----
     document.getElementById('formTimestamp').textContent = new Date().toLocaleString();
 
-    // ==== Signature Pads ====
+    // ---- Signature Pads ----
     window.sigPads = [];
     const peopleTypes = ["Project Manager","Designer","Client"];
     let personnelCount = 0;
-    function updateSaveBtn(){
+    function updateSaveBtn() {
       const btn = document.getElementById('saveJpgBtn');
       btn.style.display = (sigPads.length && sigPads.every(p=>!p.isEmpty())) ? 'block':'none';
     }
-    document.getElementById('addPersonnelBtn').addEventListener('click', ()=>{
+    document.getElementById('addPersonnelBtn').addEventListener('click', () => {
       const idx = personnelCount++;
-      // Personnel row
       const pc = document.getElementById('personnelContainer');
       const divP = document.createElement('div'); divP.className='personnel-item';
       const sel = document.createElement('select'); sel.name=`personnel[${idx}][role]`;
-      peopleTypes.forEach(pt=>{ 
-        const o=document.createElement('option'); o.value=pt; o.textContent=pt; sel.appendChild(o);
-      });
-      const inName=document.createElement('input'); inName.type='text'; inName.name=`personnel[${idx}][name]`; inName.placeholder='Name';
-      const inPhone=document.createElement('input'); inPhone.type='tel'; inPhone.name=`personnel[${idx}][phone]`; inPhone.placeholder='Phone';
+      peopleTypes.forEach(pt=>{ const o=document.createElement('option'); o.value=pt; o.textContent=pt; sel.appendChild(o); });
+      const inName = document.createElement('input'); inName.type='text'; inName.name=`personnel[${idx}][name]`; inName.placeholder='Name';
+      const inPhone = document.createElement('input'); inPhone.type='tel'; inPhone.name=`personnel[${idx}][phone]`; inPhone.placeholder='Phone';
       divP.append(sel,inName,inPhone); pc.appendChild(divP);
-      // Signature pad
-      const sdiv=document.createElement('div'); sdiv.className='sig-field';
-      sdiv.innerHTML=`<label>Signature ${idx+1}:</label><canvas id="sigCanvas_${idx}" width="400" height="120"></canvas><button type="button" id="clearSig_${idx}">Clear</button>`;
+      const sdiv = document.createElement('div'); sdiv.className='sig-field';
+      sdiv.innerHTML = `<label>Signature ${idx+1}:</label>
+        <canvas id="sigCanvas_${idx}" width="400" height="120"></canvas>
+        <button type="button" id="clearSig_${idx}">Clear</button>`;
       document.getElementById('signatureContainer').appendChild(sdiv);
-      const canvas=document.getElementById(`sigCanvas_${idx}`);
-      const pad=new SignaturePad(canvas,{backgroundColor:'rgba(255,255,255,0)'});
+      const canvas = document.getElementById(`sigCanvas_${idx}`);
+      const pad = new SignaturePad(canvas, {backgroundColor:'rgba(255,255,255,0)'});
       sigPads.push(pad);
-      document.getElementById(`clearSig_${idx}`).addEventListener('click',()=>{ pad.clear(); updateSaveBtn(); });
-      canvas.addEventListener('mouseup',updateSaveBtn);
-      canvas.addEventListener('touchend',updateSaveBtn);
+      document.getElementById(`clearSig_${idx}`).addEventListener('click', () => { pad.clear(); updateSaveBtn(); });
+      canvas.addEventListener('mouseup', updateSaveBtn);
+      canvas.addEventListener('touchend', updateSaveBtn);
       updateSaveBtn();
     });
 
-    // ==== Save as JPEG ====
-    document.getElementById('saveJpgBtn').addEventListener('click', ()=>{
+    // ---- Save as JPEG ----
+    document.getElementById('saveJpgBtn').addEventListener('click', () => {
       html2canvas(document.getElementById('mainContainer'), {scale:2,backgroundColor:'#fff'})
-      .then(canvas=>{
-        const link=document.createElement('a');
-        link.download='Demolition_Walkthrough.jpg';
-        link.href=canvas.toDataURL('image/jpeg',0.95);
+      .then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'Demolition_Walkthrough.jpg';
+        link.href = canvas.toDataURL('image/jpeg',0.95);
         link.click();
       });
     });
 
-    // ==== Checklists ====
-    function generateChecklist(id,opts){
-      const c=document.getElementById(id);
-      opts.forEach((opt,i)=>{
-        const d=document.createElement('div'); d.className='checklist-item';
-        const chk=document.createElement('input'); chk.type='checkbox'; chk.id=`${id}-chk-${i}`; chk.value=opt;
-        const lbl=document.createElement('label'); lbl.htmlFor=chk.id; lbl.textContent=opt;
-        const note=document.createElement('input'); note.type='text'; note.placeholder='Notes (optional)';
+    // ---- Checklists ----
+    function generateChecklist(id, opts) {
+      const c = document.getElementById(id);
+      opts.forEach((opt,i) => {
+        const d = document.createElement('div'); d.className='checklist-item';
+        const chk = document.createElement('input'); chk.type='checkbox'; chk.id=`${id}-chk-${i}`; chk.value=opt;
+        const lbl = document.createElement('label'); lbl.htmlFor=chk.id; lbl.textContent=opt;
+        const note = document.createElement('input'); note.type='text'; note.placeholder='Notes (optional)';
         note.className='note-input'; note.id=`${id}-note-${i}`;
-        chk.addEventListener('change',()=>note.style.display=chk.checked?'block':'none');
-        d.append(chk,lbl,note); c.appendChild(d);
+        chk.addEventListener('change', () => note.style.display = chk.checked?'block':'none');
+        d.append(chk,lbl,note);
+        c.appendChild(d);
       });
     }
-    const siteConditionsOptions=["Site access restrictions","Ground conditions (muddy/rocky)","Water accumulation","Overhead hazards","Confined space","Noise sensitive area","Dust control measures","Traffic control required","Environmental protection zones","Asbestos identified","Lead paint identified","High wind exposure","Sloped terrain","Restricted working hours","Weather forecast monitoring"];
-    const siteSecurityOptions=["Perimeter fencing","Lockable gates","Warning signage","CCTV surveillance","Temporary lighting","Security guards","Access logs","Alarm systems","Fire watch","Visitor log","Key control","Lockout/tagout","Exit signage","Barriers"];
-    const specialRequestsOptions=["Salvage materials","Furniture protection","Debris staging","Separate waste streams","Client liaison","Restricted hours","Noise mitigation","Dust suppression","Landscaping protect","Structure protect","Third party coord","Photo documentation"];
-    generateChecklist('siteConditionsList',siteConditionsOptions);
-    generateChecklist('siteSecurityList',siteSecurityOptions);
-    generateChecklist('specialRequestsList',specialRequestsOptions);
+    const siteConditionsOptions = [
+      "Site access restrictions","Ground conditions (muddy/rocky)","Water accumulation","Overhead hazards",
+      "Confined space","Noise sensitive area","Dust control measures","Traffic control required",
+      "Environmental protection zones","Asbestos identified","Lead paint identified","High wind exposure",
+      "Sloped terrain","Restricted working hours","Weather forecast monitoring"
+    ];
+    const siteSecurityOptions = [
+      "Perimeter fencing","Lockable gates","Warning signage","CCTV surveillance","Temporary lighting",
+      "Security guards","Access logs","Alarm systems","Fire watch","Visitor log","Key control",
+      "Lockout/tagout","Exit signage","Barriers"
+    ];
+    const specialRequestsOptions = [
+      "Salvage materials","Furniture protection","Debris staging","Separate waste streams","Client liaison",
+      "Restricted hours","Noise mitigation","Dust suppression","Landscaping protect","Structure protect",
+      "Third party coord","Photo documentation"
+    ];
+    generateChecklist('siteConditionsList', siteConditionsOptions);
+    generateChecklist('siteSecurityList', siteSecurityOptions);
+    generateChecklist('specialRequestsList', specialRequestsOptions);
 
-    // ==== Rooms & Tasks ====
-    const roomList=["Bathroom","Kitchen","Living Room","Bedroom","Dining Room","Home Office","Laundry Room","Garage","Basement","Attic","Patio","Deck","Porch","Hallway","Entryway","Staircase","Exterior Walls","Driveway","Sidewalk","Landscaping Area","Roof"];
-    const standardTasks=["Remove wall drywall","Remove ceiling drywall","Remove flooring","Remove doors","Remove trim/moulding","Remove baseboard trim","Asbestos review","Disconnect utilities","General cleanup","Debris removal"];
-    const roomSpecificTasks={// ─── NEW: Extended roomSpecificTasks ────────────────────────────────
-const roomSpecificTasks = {
-  "Bathroom": [
-    "Remove bathtub",
-    "Remove shower pan",
-    "Remove vanity/cabinetry",
-    "Remove sink and fixtures",
-    "Remove toilet",
-    "Remove wall tile",
-    "Remove floor tile",
-    "Remove drywall",
-    "Remove insulation",
-    "Remove lighting fixtures"
-  ],
-  "Kitchen": [
-    "Remove upper cabinets",
-    "Remove base cabinets",
-    "Remove countertops",
-    "Remove sink and faucet",
-    "Remove appliances (fridge, dishwasher)",
-    "Remove backsplash tile",
-    "Remove island",
-    "Remove range hood",
-    "Remove lighting fixtures",
-    "Remove plumbing fixtures"
-  ],
-  "Living Room": [
-    "Remove drywall",
-    "Remove flooring",
-    "Remove baseboards",
-    "Remove window trim",
-    "Remove doors",
-    "Remove built-in shelves",
-    "Remove fireplace surround",
-    "Remove lighting fixtures",
-    "Remove wall coverings",
-    "Remove vents"
-  ],
-  "Bedroom": [
-    "Remove drywall",
-    "Remove flooring",
-    "Remove baseboards",
-    "Remove closet shelving",
-    "Remove window treatments",
-    "Remove doors",
-    "Remove lighting fixtures",
-    "Remove built-in furniture",
-    "Remove outlets",
-    "Remove vents"
-  ],
-  "Dining Room": [
-    "Remove drywall",
-    "Remove flooring",
-    "Remove baseboards",
-    "Remove trim/moulding",
-    "Remove chandelier",
-    "Remove built-in features",
-    "Remove lighting fixtures",
-    "Remove wall paneling",
-    "Remove window treatments",
-    "Remove outlets"
-  ],
-  "Home Office": [
-    "Remove drywall",
-    "Remove flooring",
-    "Remove built-in desks",
-    "Remove shelving",
-    "Remove lighting fixtures",
-    "Remove data outlets",
-    "Remove trim",
-    "Remove baseboards",
-    "Remove wiring",
-    "Remove outlets"
-  ],
-  "Laundry Room": [
-    "Remove washer/dryer hookups",
-    "Remove cabinets",
-    "Remove sink",
-    "Remove plumbing fixtures",
-    "Remove flooring",
-    "Remove lighting fixtures",
-    "Remove vent fan",
-    "Remove tile",
-    "Remove shelving",
-    "Remove outlets"
-  ],
-  "Garage": [
-    "Remove drywall",
-    "Remove shelving",
-    "Remove cabinets",
-    "Remove doors",
-    "Remove windows",
-    "Remove lighting fixtures",
-    "Remove electrical fixtures",
-    "Remove insulation",
-    "Remove hooks",
-    "Remove signage"
-  ],
-  "Basement": [
-    "Remove drywall",
-    "Remove drop ceiling",
-    "Remove flooring",
-    "Remove insulation",
-    "Remove windows",
-    "Remove lighting fixtures",
-    "Remove sump pump cover",
-    "Remove shelving",
-    "Remove tile",
-    "Remove outlets"
-  ],
-  "Attic": [
-    "Remove insulation",
-    "Remove drywall",
-    "Remove flooring",
-    "Remove vents",
-    "Remove lighting fixtures",
-    "Remove wiring",
-    "Remove ductwork",
-    "Remove hatch",
-    "Remove bracing",
-    "Remove panels"
-  ],
-  "Patio": [
-    "Remove pavers",
-    "Remove decking",
-    "Remove railings",
-    "Remove pergola",
-    "Remove lighting fixtures",
-    "Remove planters",
-    "Remove outdoor furniture",
-    "Remove fixtures",
-    "Remove awning",
-    "Remove waterproofing"
-  ],
-  "Deck": [
-    "Remove deck boards",
-    "Remove railings",
-    "Remove support posts",
-    "Remove stairs",
-    "Remove joists",
-    "Remove skirting",
-    "Remove hardware",
-    "Remove lighting fixtures",
-    "Remove fascia",
-    "Remove insulation"
-  ],
-  "Porch": [
-    "Remove flooring",
-    "Remove railings",
-    "Remove columns",
-    "Remove ceiling",
-    "Remove trim",
-    "Remove lighting fixtures",
-    "Remove door frame",
-    "Remove steps",
-    "Remove fixtures",
-    "Remove soffit"
-  ],
-  "Hallway": [
-    "Remove drywall",
-    "Remove flooring",
-    "Remove baseboards",
-    "Remove trim",
-    "Remove lighting fixtures",
-    "Remove wall sconces",
-    "Remove railings",
-    "Remove doors",
-    "Remove vents",
-    "Remove outlets"
-  ],
-  "Entryway": [
-    "Remove drywall",
-    "Remove flooring",
-    "Remove baseboards",
-    "Remove trim",
-    "Remove lighting fixtures",
-    "Remove closet shelving",
-    "Remove doors",
-    "Remove hardware",
-    "Remove paint",
-    "Remove outlets"
-  ],
-  "Staircase": [
-    "Remove treads",
-    "Remove risers",
-    "Remove handrails",
-    "Remove balusters",
-    "Remove lighting fixtures",
-    "Remove carpeting",
-    "Remove trim",
-    "Remove posts",
-    "Remove landing",
-    "Remove hardware"
-  ],
-  "Exterior Walls": [
-    "Remove siding",
-    "Remove trim",
-    "Remove windows",
-    "Remove fixtures",
-    "Remove flashing",
-    "Remove caulking",
-    "Remove soffit",
-    "Remove fascia",
-    "Remove vents",
-    "Remove insulation"
-  ],
-  "Driveway": [
-    "Remove concrete",
-    "Remove asphalt",
-    "Remove pavers",
-    "Remove sealant",
-    "Remove expansion joints",
-    "Remove edging",
-    "Remove debris",
-    "Remove gravel",
-    "Remove markings",
-    "Remove base rock"
-  ],
-  "Sidewalk": [
-    "Remove concrete",
-    "Remove pavers",
-    "Remove sealant",
-    "Remove expansion joints",
-    "Remove edging",
-    "Remove debris",
-    "Remove paint",
-    "Remove weeds",
-    "Remove fixtures",
-    "Remove base rock"
-  ],
-  "Landscaping Area": [
-    "Remove plants",
-    "Remove mulch",
-    "Remove sod",
-    "Remove edging",
-    "Remove irrigation lines",
-    "Remove fencing",
-    "Remove planters",
-    "Remove topsoil",
-    "Remove debris",
-    "Remove fixtures"
-  ],
-  "Roof": [
-    "Remove shingles",
-    "Remove underlayment",
-    "Remove flashing",
-    "Remove gutters",
-    "Remove downspouts",
-    "Remove vents",
-    "Remove skylights",
-    "Remove decking",
-    "Remove insulation",
-    "Remove hardware"
-  ]
-};
-// ────────────────────────────────────────────────────────────────────────
-};
+    // ---- Rooms & Tasks ----
+    const roomList = ["Bathroom","Kitchen","Living Room","Bedroom","Dining Room","Home Office","Laundry Room","Garage","Basement","Attic","Patio","Deck","Porch","Hallway","Entryway","Staircase","Exterior Walls","Driveway","Sidewalk","Landscaping Area","Roof"];
+    const standardTasks = ["Remove wall drywall","Remove ceiling drywall","Remove flooring","Remove doors","Remove trim/moulding","Remove baseboard trim","Asbestos review","Disconnect utilities","General cleanup","Debris removal"];
+    const roomSpecificTasks = {
+      "Bathroom":["Remove bathtub","Remove shower pan","Remove vanity/cabinetry","Remove sink and fixtures","Remove toilet","Remove wall tile","Remove floor tile","Remove drywall","Remove insulation","Remove lighting fixtures"],
+      "Kitchen":["Remove upper cabinets","Remove base cabinets","Remove countertops","Remove sink and faucet","Remove appliances","Remove backsplash tile","Remove island","Remove range hood","Remove lighting fixtures","Remove plumbing fixtures"],
+      "Living Room":["Remove drywall","Remove flooring","Remove baseboards","Remove window trim","Remove doors","Remove built-in shelves","Remove fireplace surround","Remove lighting fixtures","Remove wall coverings","Remove vents"],
+      "Bedroom":["Remove drywall","Remove flooring","Remove baseboards","Remove closet shelving","Remove window treatments","Remove doors","Remove lighting fixtures","Remove built-in furniture","Remove outlets","Remove vents"],
+      "Dining Room":["Remove drywall","Remove flooring","Remove baseboards","Remove trim/moulding","Remove chandelier","Remove built-in features","Remove lighting fixtures","Remove wall paneling","Remove window treatments","Remove outlets"],
+      "Home Office":["Remove drywall","Remove flooring","Remove built-in desks","Remove shelving","Remove lighting fixtures","Remove data outlets","Remove trim","Remove baseboards","Remove wiring","Remove outlets"],
+      "Laundry Room":["Remove washer/dryer hookups","Remove cabinets","Remove sink","Remove plumbing fixtures","Remove flooring","Remove lighting fixtures","Remove vent fan","Remove tile","Remove shelving","Remove outlets"],
+      "Garage":["Remove drywall","Remove shelving","Remove cabinets","Remove doors","Remove windows","Remove lighting fixtures","Remove electrical fixtures","Remove insulation","Remove hooks","Remove signage"],
+      "Basement":["Remove drywall","Remove drop ceiling","Remove flooring","Remove insulation","Remove windows","Remove lighting fixtures","Remove sump pump cover","Remove shelving","Remove tile","Remove outlets"],
+      "Attic":["Remove insulation","Remove drywall","Remove flooring","Remove vents","Remove lighting fixtures","Remove wiring","Remove ductwork","Remove hatch","Remove bracing","Remove panels"],
+      "Patio":["Remove pavers","Remove decking","Remove railings","Remove pergola","Remove lighting fixtures","Remove planters","Remove outdoor furniture","Remove fixtures","Remove awning","Remove waterproofing"],
+      "Deck":["Remove deck boards","Remove railings","Remove support posts","Remove stairs","Remove joists","Remove skirting","Remove hardware","Remove lighting fixtures","Remove fascia","Remove insulation"],
+      "Porch":["Remove flooring","Remove railings","Remove columns","Remove ceiling","Remove trim","Remove lighting fixtures","Remove door frame","Remove steps","Remove fixtures","Remove soffit"],
+      "Hallway":["Remove drywall","Remove flooring","Remove baseboards","Remove trim","Remove lighting fixtures","Remove wall sconces","Remove railings","Remove doors","Remove vents","Remove outlets"],
+      "Entryway":["Remove drywall","Remove flooring","Remove baseboards","Remove trim","Remove lighting fixtures","Remove closet shelving","Remove doors","Remove hardware","Remove paint","Remove outlets"],
+      "Staircase":["Remove treads","Remove risers","Remove handrails","Remove balusters","Remove lighting fixtures","Remove carpeting","Remove trim","Remove posts","Remove landing","Remove hardware"],
+      "Exterior Walls":["Remove siding","Remove trim","Remove windows","Remove fixtures","Remove flashing","Remove caulking","Remove soffit","Remove fascia","Remove vents","Remove insulation"],
+      "Driveway":["Remove concrete","Remove asphalt","Remove pavers","Remove sealant","Remove expansion joints","Remove edging","Remove debris","Remove gravel","Remove markings","Remove base rock"],
+      "Sidewalk":["Remove concrete","Remove pavers","Remove sealant","Remove expansion joints","Remove edging","Remove debris","Remove paint","Remove weeds","Remove fixtures","Remove base rock"],
+      "Landscaping Area":["Remove plants","Remove mulch","Remove sod","Remove edging","Remove irrigation lines","Remove fencing","Remove planters","Remove topsoil","Remove debris","Remove fixtures"],
+      "Roof":["Remove shingles","Remove underlayment","Remove flashing","Remove gutters","Remove downspouts","Remove vents","Remove skylights","Remove decking","Remove insulation","Remove hardware"]
+    };
 
-    function saveRoomPhoto(idx,dataURL){ localStorage.setItem(`room-${idx}-photo`,dataURL); }
+    function saveRoomPhoto(idx,dataURL){ localStorage.setItem(`room-${idx}-photo`, dataURL); }
     function loadRoomPhoto(idx){ return localStorage.getItem(`room-${idx}-photo`); }
     function insertPhotoPreview(idx,dataURL){
       const fs=document.getElementById(`room-${idx}`),
@@ -417,8 +194,12 @@ const roomSpecificTasks = {
     function saveCustomTasks(idx){
       const arr=Array.from(document.querySelectorAll(`#tasks-${idx} .task-item`))
         .filter(it=>it.querySelector('input[type="text"]'))
-        .map(it=>({ text:it.querySelector('input[type="text"]').value, checked:it.querySelector('input[type="checkbox"]').checked, disposition:it.querySelector('select').value }));
-      localStorage.setItem(`room-${idx}-customTasks`,JSON.stringify(arr));
+        .map(it=>({
+          text:it.querySelector('input[type="text"]').value,
+          checked:it.querySelector('input[type="checkbox"]').checked,
+          disposition:it.querySelector('select').value
+        }));
+      localStorage.setItem(`room-${idx}-customTasks`, JSON.stringify(arr));
     }
     function loadCustomTasks(idx){
       JSON.parse(localStorage.getItem(`room-${idx}-customTasks`)||'[]').forEach(td=>{
@@ -431,6 +212,7 @@ const roomSpecificTasks = {
         sel.value=td.disposition;
       });
     }
+
     function renderTasks(idx,type){
       const cont=document.getElementById(`tasks-${idx}`); cont.innerHTML='';
       const tasks=standardTasks.concat(roomSpecificTasks[type]||[]);
@@ -449,9 +231,12 @@ const roomSpecificTasks = {
         ctr.appendChild(sel); div.append(lbl,ctr); cont.appendChild(div);
       });
     }
+
     function addCustomTask(idx){
-      const cont=document.getElementById(`tasks-${idx}`), div=document.createElement('div'); div.className='task-item';
-      const lbl=document.createElement('label'), cb=document.createElement('input'); cb.type='checkbox',
+      const cont=document.getElementById(`tasks-${idx}`),
+            div=document.createElement('div'); div.className='task-item';
+      const lbl=document.createElement('label'),
+            cb=document.createElement('input'); cb.type='checkbox',
             inp=document.createElement('input'); inp.type='text'; inp.placeholder='Custom task'; inp.style.flex='1'; inp.style.marginLeft='8px';
       lbl.append(cb,inp);
       const ctr=document.createElement('div'); ctr.className='task-controls';
@@ -464,53 +249,71 @@ const roomSpecificTasks = {
       inp.addEventListener('input',()=>saveCustomTasks(idx));
       ctr.appendChild(sel); div.append(lbl,ctr); cont.appendChild(div);
     }
+
     let roomCount=0;
-    document.getElementById('addRoomBtn').addEventListener('click',()=>{
+    document.getElementById('addRoomBtn').addEventListener('click', ()=>{
       const idx=roomCount++;
       const fs=document.createElement('fieldset'); fs.id=`room-${idx}`;
       fs.appendChild(Object.assign(document.createElement('legend'),{textContent:`Room ${idx+1}`}));
       const sel=document.createElement('select'); sel.name=`rooms[${idx}][type]`;
       roomList.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;sel.appendChild(o);});
-      sel.addEventListener('change',()=>{renderTasks(idx,sel.value);loadCustomTasks(idx);const p=loadRoomPhoto(idx);if(p)insertPhotoPreview(idx,p);});
+      sel.addEventListener('change',()=>{
+        renderTasks(idx,sel.value); loadCustomTasks(idx);
+        const p=loadRoomPhoto(idx); if(p) insertPhotoPreview(idx,p);
+      });
       fs.appendChild(sel);
       const photo=document.createElement('input'); photo.type='file'; photo.accept='image/*'; photo.capture='environment';
       photo.addEventListener('change',()=>{
         const f=photo.files[0]; if(f){
-          const reader=new FileReader();
-          reader.onload=e=>{saveRoomPhoto(idx,e.target.result);insertPhotoPreview(idx,e.target.result);};
-          reader.readAsDataURL(f);
+          const rdr=new FileReader();
+          rdr.onload=e=>{ saveRoomPhoto(idx,e.target.result); insertPhotoPreview(idx,e.target.result); };
+          rdr.readAsDataURL(f);
         }
       });
       fs.appendChild(photo);
       const tasksDiv=document.createElement('div'); tasksDiv.id=`tasks-${idx}`; fs.appendChild(tasksDiv);
-      const cbtn=document.createElement('button'); cbtn.type='button'; cbtn.className='btn btn-custom'; cbtn.textContent='+ Custom Task';
-      cbtn.addEventListener('click',()=>{addCustomTask(idx);saveCustomTasks(idx);});
-      fs.appendChild(cbtn);
-      document.getElementById('roomsContainer').appendChild(fs);
       renderTasks(idx,roomList[0]);
       loadCustomTasks(idx);
-      const st=loadRoomPhoto(idx); if(st)insertPhotoPreview(idx,st);
-      localStorage.setItem('roomCount',roomCount);
+      const st=loadRoomPhoto(idx); if(st) insertPhotoPreview(idx,st);
+      const cbtn=document.createElement('button'); cbtn.type='button'; cbtn.className='btn btn-custom'; cbtn.textContent='+ Custom Task';
+      cbtn.addEventListener('click',()=>{ addCustomTask(idx); saveCustomTasks(idx); });
+      fs.appendChild(cbtn);
+      // Remove Room button
+      const rbtn=document.createElement('button'); rbtn.type='button'; rbtn.className='btn btn-custom'; rbtn.textContent='Remove Room';
+      rbtn.addEventListener('click',()=>{
+        fs.remove();
+        roomCount = document.querySelectorAll('#roomsContainer fieldset').length;
+        localStorage.setItem('roomCount', roomCount);
+      });
+      fs.appendChild(rbtn);
+      document.getElementById('roomsContainer').appendChild(fs);
+      localStorage.setItem('roomCount', roomCount);
     });
-    document.getElementById('captureLocationBtn').addEventListener('click',()=>{
-      if(!navigator.geolocation){alert('Geolocation not supported');return;}
-      navigator.geolocation.getCurrentPosition(pos=>{
-        document.getElementById('siteLocationDisplay').textContent=`Latitude: ${pos.coords.latitude.toFixed(6)}, Longitude: ${pos.coords.longitude.toFixed(6)}`;
-      },err=>alert('Unable to retrieve location: '+err.message));
-    });
-    // Restore fields
-    const sa=localStorage.getItem('siteAddress'); if(sa)document.getElementById('siteAddress').value=sa;
-    const cn=localStorage.getItem('clientName'); if(cn)document.getElementById('clientName').value=cn;
-    const rc=+localStorage.getItem('roomCount')||0; for(let i=0;i<rc;i++)document.getElementById('addRoomBtn').click();
-    // Save on unload
-    window.addEventListener('beforeunload',()=>{localStorage.setItem('siteAddress',document.getElementById('siteAddress').value);localStorage.setItem('clientName',document.getElementById('clientName').value);});
 
-    // ==== Work Order Modal ====
-    document.getElementById('toWorkOrderBtn').addEventListener('click',()=>{
+    // ---- Geolocation ----
+    document.getElementById('captureLocationBtn').addEventListener('click', ()=>{
+      if(!navigator.geolocation){ alert('Geolocation not supported'); return; }
+      navigator.geolocation.getCurrentPosition(pos=>{
+        document.getElementById('siteLocationDisplay').textContent = `Latitude: ${pos.coords.latitude.toFixed(6)}, Longitude: ${pos.coords.longitude.toFixed(6)}`;
+      }, err=>alert('Unable to retrieve location: '+err.message));
+    });
+
+    // ---- Restore & Save ----
+    const sa=localStorage.getItem('siteAddress'); if(sa) document.getElementById('siteAddress').value=sa;
+    const cn=localStorage.getItem('clientName'); if(cn) document.getElementById('clientName').value=cn;
+    const rc=+localStorage.getItem('roomCount')||0;
+    for(let i=0;i<rc;i++) document.getElementById('addRoomBtn').click();
+    window.addEventListener('beforeunload',()=>{
+      localStorage.setItem('siteAddress', document.getElementById('siteAddress').value);
+      localStorage.setItem('clientName', document.getElementById('clientName').value);
+    });
+
+    // ---- Work Order Modal ----
+    document.getElementById('toWorkOrderBtn').addEventListener('click', ()=>{
       document.getElementById('workOrderModal')?.remove();
       const overlay=document.createElement('div'); overlay.id='workOrderModal';
       Object.assign(overlay.style,{position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.6)',zIndex:9999,display:'flex',justifyContent:'center',alignItems:'flex-start',overflowY:'auto',padding:'2vh'});
-      const modal=document.createElement('div'); Object.assign(modal.style,{background:'#fff',borderRadius:'12px',padding:'20px',maxWidth:'800px',width:'100%'});              
+      const modal=document.createElement('div'); Object.assign(modal.style,{background:'#fff',borderRadius:'12px',padding:'20px',maxWidth:'800px',width:'100%'});
       modal.innerHTML=`
         <button id="closeWOModal" style="position:absolute;top:12px;right:12px;font-size:1.5em;border:none;background:none;cursor:pointer;">×</button>
         <h2 style="color:#ff8c00;">Work Order Summary</h2>
@@ -527,14 +330,14 @@ const roomSpecificTasks = {
           <button id="woEmailBtn" class="btn btn-primary">Email Checklist</button>
         </div>`;
       overlay.appendChild(modal); document.body.appendChild(overlay);
-      document.getElementById('closeWOModal').onclick=()=>overlay.remove();
+      document.getElementById('closeWOModal').onclick = ()=> overlay.remove();
 
       // Accordion sections
       [['Site Conditions','siteConditionsList'],['Site Security','siteSecurityList'],['Special Client Requests','specialRequestsList']].forEach(([label,id])=>{
         const section=document.createElement('div'); section.style.margin='10px 0';
         const btn=document.createElement('button'); Object.assign(btn.style,{width:'100%',textAlign:'left',padding:'10px',background:'#f7f7f7',border:'1px solid #ccc',borderRadius:'4px',cursor:'pointer'}); btn.textContent=label;
         const content=document.createElement('div'); Object.assign(content.style,{display:'none',padding:'10px',border:'1px solid #ccc',borderTop:'none'});
-        document.querySelectorAll(`#${id} input[type="checkbox"]`).forEach(chk=>{
+        document.querySelectorAll(`#${id} .checklist-item input[type="checkbox"]`).forEach(chk=>{
           if(chk.checked){
             const row=document.createElement('div'); row.style.marginBottom='8px';
             const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=true;
@@ -544,76 +347,74 @@ const roomSpecificTasks = {
             content.appendChild(row);
           }
         });
-        btn.onclick=()=>content.style.display=(content.style.display==='none'?'block':'none');
+        btn.onclick = ()=> content.style.display = content.style.display==='none'?'block':'none';
         section.append(btn,content); modal.querySelector('#accordionSectionContainer').appendChild(section);
       });
 
-      // Room tasks summary
+      // Room tasks
       modal.querySelectorAll('#roomsContainer fieldset').forEach(fs=>{
-        const roomName=fs.querySelector('select').value;
-        const checkedItems=Array.from(fs.querySelectorAll('.task-item')).filter(item=>item.querySelector('input[type="checkbox"]').checked);
-        if(!checkedItems.length) return;
+        const nm=fs.querySelector('select').value;
+        const items=Array.from(fs.querySelectorAll('.task-item')).filter(it=>it.querySelector('input[type="checkbox"]').checked);
+        if(!items.length) return;
         const sec=document.createElement('div'); sec.style.marginBottom='20px';
-        const h4=document.createElement('h4'); h4.textContent=roomName; sec.appendChild(h4);
+        const h4=document.createElement('h4'); h4.textContent=nm; sec.appendChild(h4);
         const ul=document.createElement('ul'); ul.className='sortable-tasks'; ul.style.paddingLeft='20px';
-        checkedItems.forEach(item=>{
+        items.forEach(it=>{
           const li=document.createElement('li'); li.draggable=true;
           Object.assign(li.style,{marginBottom:'10px',padding:'6px',border:'1px solid #ccc',borderRadius:'6px',background:'#f9f9f9',cursor:'grab'});
-          const label=item.querySelector('label').textContent.trim();
-          const disp=item.querySelector('select')?.value||'';
-          li.textContent=`${label} — ${disp}`;
-          const note=item.querySelector('textarea')?.value;
+          const lbl=it.querySelector('label').textContent.trim();
+          const disp=it.querySelector('select')?.value||'';
+          li.textContent=`${lbl} — ${disp}`;
+          const note=it.querySelector('textarea')?.value;
           if(note){ const p=document.createElement('p'); p.textContent='Note: '+note; p.style.marginLeft='12px'; p.style.color='#555'; li.appendChild(p); }
           ul.appendChild(li);
         });
-        const inp=fs.querySelector('input[type="file"]');
-        if(inp&&inp.files[0]){
-          const reader=new FileReader();
-          reader.onload=e=>{
-            const img=document.createElement('img'); img.src=e.target.result; img.style.maxWidth='150px'; img.style.display='block'; img.style.marginTop='6px'; 
-            sec.appendChild(img);
+        const ip=fs.querySelector('input[type="file"]');
+        if(ip&&ip.files[0]){
+          const rdr=new FileReader();
+          rdr.onload=e=>{
+            const img=document.createElement('img'); img.src=e.target.result; img.style.maxWidth='150px'; img.style.display='block'; img.style.marginTop='6px'; sec.appendChild(img);
           };
-          reader.readAsDataURL(inp.files[0]);
+          rdr.readAsDataURL(ip.files[0]);
         }
         sec.appendChild(ul); modal.querySelector('#roomTasksContainer').appendChild(sec);
       });
 
       // Drag & drop
       modal.querySelectorAll('.sortable-tasks').forEach(ul=>{
-        let draggingEl=null;
-        ul.addEventListener('dragstart',e=>{draggingEl=e.target;e.dataTransfer.effectAllowed='move';});
+        let dragEl=null;
+        ul.addEventListener('dragstart',e=>{dragEl=e.target; e.dataTransfer.effectAllowed='move';});
         ul.addEventListener('dragover',e=>{
           e.preventDefault();
           const tgt=e.target.closest('li');
-          if(tgt && tgt!==draggingEl){
-            const rect=tgt.getBoundingClientRect();
-            const after=(e.clientY-rect.top)/(rect.bottom-rect.top)>0.5;
-            tgt.parentNode.insertBefore(draggingEl, after?tgt.nextSibling:tgt);
+          if(tgt && tgt!==dragEl){
+            const r=tgt.getBoundingClientRect(), after=(e.clientY-r.top)/(r.bottom-r.top)>0.5;
+            tgt.parentNode.insertBefore(dragEl, after?tgt.nextSibling:tgt);
           }
         });
       });
 
       // Modal signature
-      const modalPad=new SignaturePad(modal.querySelector('#woSigCanvas'));
+      const modalPad = new SignaturePad(modal.querySelector('#woSigCanvas'));
 
       // PDF export
-      modal.querySelector('#woPdfBtn').addEventListener('click',()=>{
+      modal.querySelector('#woPdfBtn').addEventListener('click', ()=>{
         html2canvas(modal,{scale:2,backgroundColor:'#fff'}).then(c=>{
           const link=document.createElement('a'); link.download='Work_Order.pdf'; link.href=c.toDataURL('image/png'); link.click();
         });
       });
 
       // JPG export
-      modal.querySelector('#woJpgBtn').addEventListener('click',()=>{
+      modal.querySelector('#woJpgBtn').addEventListener('click', ()=>{
         html2canvas(modal,{scale:2,backgroundColor:'#fff'}).then(c=>{
           const link=document.createElement('a'); link.download='Work_Order.jpg'; link.href=c.toDataURL('image/jpeg',0.95); link.click();
         });
       });
 
-      // Email summary
-      modal.querySelector('#woEmailBtn').addEventListener('click',()=>{
+      // Email
+      modal.querySelector('#woEmailBtn').addEventListener('click', ()=>{
         let body='';
-        modal.querySelectorAll('input[type="checkbox"]:checked').forEach(cb=>{body+=cb.parentElement.textContent.trim()+'\n';});
+        modal.querySelectorAll('input[type="checkbox"]:checked').forEach(cb=>{ body+=cb.parentElement.textContent.trim()+'\n'; });
         const nm=modal.querySelector('#woSignName').value, dt=modal.querySelector('#woSignDate').value;
         body+=`\nSigned by: ${nm} on ${dt}`;
         window.location.href=`mailto:?subject=Work Order Checklist&body=${encodeURIComponent(body)}`;
