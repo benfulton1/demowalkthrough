@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Interior Elite Demolition Walkthrough v1.9</title>
+  <title>Interior Elite Demolition Walkthrough v1.10</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
     body { font-family:'Montserrat',sans-serif; background:#f0f0f0; color:#333; margin:0; padding:0; }
@@ -12,7 +12,7 @@
     .header h1 { font-size:1.6rem; margin:0; }
     .container { max-width:800px; margin:24px auto; padding:20px; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
     h2 { text-align:center; color:#ff8c00; margin-bottom:24px; }
-    fieldset { border:1px solid #ddd; border-radius:8px; margin-bottom:20px; padding:15px; }
+    fieldset { border:1px solid #ddd; border-radius:8px; margin-bottom:20px; padding:15px; position:relative; }
     legend { font-weight:600; font-size:1.1rem; color:#444; }
     label { display:block; margin-bottom:6px; font-weight:500; }
     input, select, textarea, button { width:100%; padding:8px; margin-bottom:12px; border:1px solid #ccc; border-radius:4px; }
@@ -26,9 +26,10 @@
     .sig-field { margin:16px 0; }
     .sig-field canvas { border:1px solid #ccc; border-radius:4px; display:block; width:100%; max-width:400px; height:120px; }
     .room-photo-preview { max-width:200px; display:block; margin:10px 0; border:1px solid #ccc; }
+    .remove-room { position:absolute; top:10px; right:10px; background:#e74c3c; color:#fff; font-size:0.9em; width:auto; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; }
     .footer { text-align:center; padding:12px; font-size:0.85rem; color:#666; }
-    button[disabled] { opacity:0.5; cursor:not-allowed; }
   </style>
+  <!-- External libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.6/dist/signature_pad.umd.min.js"></script>
@@ -40,32 +41,40 @@
   </header>
 
   <div class="container" id="mainContainer">
-    <h2>Demolition Walkthrough v1.9</h2>
+    <h2>Demolition Walkthrough v1.10</h2>
     <p><strong>Timestamp:</strong> <span id="formTimestamp"></span></p>
     <form id="demoForm">
       <!-- Project Info -->
-      <fieldset><legend>Project Info</legend>
+      <fieldset>
+        <legend>Project Info</legend>
         <label>Site Address<input id="siteAddress" type="text" placeholder="Enter site address"></label>
         <label>Client Name<input id="clientName" type="text" placeholder="Enter client name"></label>
         <button type="button" id="captureLocationBtn" class="btn btn-custom">Capture Site Location</button>
         <div id="siteLocationDisplay" style="font-size:0.9rem;color:#555;"></div>
       </fieldset>
+
       <!-- Personnel -->
-      <fieldset><legend>Personnel on Site</legend>
+      <fieldset>
+        <legend>Personnel on Site</legend>
         <button type="button" id="addPersonnelBtn" class="btn btn-primary">+ Add Personnel</button>
         <div id="personnelContainer"></div>
       </fieldset>
+
       <!-- Checklists -->
       <fieldset><legend>Site Conditions</legend><div id="siteConditionsList"></div></fieldset>
       <fieldset><legend>Site Security</legend><div id="siteSecurityList"></div></fieldset>
       <fieldset><legend>Special Client Requests</legend><div id="specialRequestsList"></div></fieldset>
+
       <!-- Rooms & Tasks -->
-      <fieldset><legend>Rooms & Tasks</legend>
+      <fieldset>
+        <legend>Rooms & Tasks</legend>
         <button type="button" id="addRoomBtn" class="btn btn-primary">+ Add Room</button>
         <div id="roomsContainer"></div>
       </fieldset>
+
       <!-- Signature Pads -->
       <div id="signatureContainer"></div>
+
       <!-- Action Buttons -->
       <button type="button" id="saveJpgBtn" class="btn btn-secondary" style="display:none;">Save copy of form</button>
       <button type="button" id="toWorkOrderBtn" class="btn btn-secondary">Convert to Work Order</button>
@@ -83,82 +92,75 @@
     window.sigPads = [];
     const peopleTypes = ["Project Manager","Designer","Client"];
     let personnelCount = 0;
-    function updateSaveBtn() {
+    function updateSaveBtn(){
       const btn = document.getElementById('saveJpgBtn');
       btn.style.display = (sigPads.length && sigPads.every(p=>!p.isEmpty())) ? 'block':'none';
     }
-    document.getElementById('addPersonnelBtn').addEventListener('click', () => {
+    document.getElementById('addPersonnelBtn').addEventListener('click', ()=>{
       const idx = personnelCount++;
       const pc = document.getElementById('personnelContainer');
       const divP = document.createElement('div'); divP.className='personnel-item';
       const sel = document.createElement('select'); sel.name=`personnel[${idx}][role]`;
-      peopleTypes.forEach(pt=>{ const o=document.createElement('option'); o.value=pt; o.textContent=pt; sel.appendChild(o); });
-      const inName = document.createElement('input'); inName.type='text'; inName.name=`personnel[${idx}][name]`; inName.placeholder='Name';
-      const inPhone = document.createElement('input'); inPhone.type='tel'; inPhone.name=`personnel[${idx}][phone]`; inPhone.placeholder='Phone';
-      divP.append(sel,inName,inPhone); pc.appendChild(divP);
-      const sdiv = document.createElement('div'); sdiv.className='sig-field';
-      sdiv.innerHTML = `<label>Signature ${idx+1}:</label>
+      peopleTypes.forEach(pt=>{
+        const o=document.createElement('option'); o.value=pt; o.textContent=pt; sel.appendChild(o);
+      });
+      const inName=document.createElement('input'); inName.type='text'; inName.name=`personnel[${idx}][name]`; inName.placeholder='Name';
+      const inPhone=document.createElement('input'); inPhone.type='tel'; inPhone.name=`personnel[${idx}][phone]`; inPhone.placeholder='Phone';
+      divP.append(sel,inName,inPhone);
+      pc.appendChild(divP);
+
+      const sdiv=document.createElement('div'); sdiv.className='sig-field';
+      sdiv.innerHTML = `
+        <label>Signature ${idx+1}:</label>
         <canvas id="sigCanvas_${idx}" width="400" height="120"></canvas>
-        <button type="button" id="clearSig_${idx}">Clear</button>`;
+        <button type="button" id="clearSig_${idx}">Clear</button>
+      `;
       document.getElementById('signatureContainer').appendChild(sdiv);
-      const canvas = document.getElementById(`sigCanvas_${idx}`);
-      const pad = new SignaturePad(canvas, {backgroundColor:'rgba(255,255,255,0)'});
+      const canvas=document.getElementById(`sigCanvas_${idx}`);
+      const pad=new SignaturePad(canvas,{backgroundColor:'rgba(255,255,255,0)'});
       sigPads.push(pad);
-      document.getElementById(`clearSig_${idx}`).addEventListener('click', () => { pad.clear(); updateSaveBtn(); });
+      document.getElementById(`clearSig_${idx}`).addEventListener('click', ()=>{ pad.clear(); updateSaveBtn(); });
       canvas.addEventListener('mouseup', updateSaveBtn);
       canvas.addEventListener('touchend', updateSaveBtn);
       updateSaveBtn();
     });
 
     // ---- Save as JPEG ----
-    document.getElementById('saveJpgBtn').addEventListener('click', () => {
+    document.getElementById('saveJpgBtn').addEventListener('click', ()=>{
       html2canvas(document.getElementById('mainContainer'), {scale:2,backgroundColor:'#fff'})
-      .then(canvas => {
-        const link = document.createElement('a');
-        link.download = 'Demolition_Walkthrough.jpg';
-        link.href = canvas.toDataURL('image/jpeg',0.95);
+      .then(canvas=>{
+        const link=document.createElement('a');
+        link.download='Demolition_Walkthrough.jpg';
+        link.href=canvas.toDataURL('image/jpeg',0.95);
         link.click();
       });
     });
 
     // ---- Checklists ----
-    function generateChecklist(id, opts) {
-      const c = document.getElementById(id);
-      opts.forEach((opt,i) => {
-        const d = document.createElement('div'); d.className='checklist-item';
-        const chk = document.createElement('input'); chk.type='checkbox'; chk.id=`${id}-chk-${i}`; chk.value=opt;
-        const lbl = document.createElement('label'); lbl.htmlFor=chk.id; lbl.textContent=opt;
-        const note = document.createElement('input'); note.type='text'; note.placeholder='Notes (optional)';
+    function generateChecklist(id, opts){
+      const c=document.getElementById(id);
+      opts.forEach((opt,i)=>{
+        const d=document.createElement('div'); d.className='checklist-item';
+        const chk=document.createElement('input'); chk.type='checkbox'; chk.id=`${id}-chk-${i}`; chk.value=opt;
+        const lbl=document.createElement('label'); lbl.htmlFor=chk.id; lbl.textContent=opt;
+        const note=document.createElement('input'); note.type='text'; note.placeholder='Notes (optional)';
         note.className='note-input'; note.id=`${id}-note-${i}`;
-        chk.addEventListener('change', () => note.style.display = chk.checked?'block':'none');
+        chk.addEventListener('change', ()=> note.style.display = chk.checked?'block':'none');
         d.append(chk,lbl,note);
         c.appendChild(d);
       });
     }
-    const siteConditionsOptions = [
-      "Site access restrictions","Ground conditions (muddy/rocky)","Water accumulation","Overhead hazards",
-      "Confined space","Noise sensitive area","Dust control measures","Traffic control required",
-      "Environmental protection zones","Asbestos identified","Lead paint identified","High wind exposure",
-      "Sloped terrain","Restricted working hours","Weather forecast monitoring"
-    ];
-    const siteSecurityOptions = [
-      "Perimeter fencing","Lockable gates","Warning signage","CCTV surveillance","Temporary lighting",
-      "Security guards","Access logs","Alarm systems","Fire watch","Visitor log","Key control",
-      "Lockout/tagout","Exit signage","Barriers"
-    ];
-    const specialRequestsOptions = [
-      "Salvage materials","Furniture protection","Debris staging","Separate waste streams","Client liaison",
-      "Restricted hours","Noise mitigation","Dust suppression","Landscaping protect","Structure protect",
-      "Third party coord","Photo documentation"
-    ];
+    const siteConditionsOptions=["Site access restrictions","Ground conditions (muddy/rocky)","Water accumulation","Overhead hazards","Confined space","Noise sensitive area","Dust control measures","Traffic control required","Environmental protection zones","Asbestos identified","Lead paint identified","High wind exposure","Sloped terrain","Restricted working hours","Weather forecast monitoring"];
+    const siteSecurityOptions=["Perimeter fencing","Lockable gates","Warning signage","CCTV surveillance","Temporary lighting","Security guards","Access logs","Alarm systems","Fire watch","Visitor log","Key control","Lockout/tagout","Exit signage","Barriers"];
+    const specialRequestsOptions=["Salvage materials","Furniture protection","Debris staging","Separate waste streams","Client liaison","Restricted hours","Noise mitigation","Dust suppression","Landscaping protect","Structure protect","Third party coord","Photo documentation"];
     generateChecklist('siteConditionsList', siteConditionsOptions);
     generateChecklist('siteSecurityList', siteSecurityOptions);
     generateChecklist('specialRequestsList', specialRequestsOptions);
 
     // ---- Rooms & Tasks ----
-    const roomList = ["Bathroom","Kitchen","Living Room","Bedroom","Dining Room","Home Office","Laundry Room","Garage","Basement","Attic","Patio","Deck","Porch","Hallway","Entryway","Staircase","Exterior Walls","Driveway","Sidewalk","Landscaping Area","Roof"];
-    const standardTasks = ["Remove wall drywall","Remove ceiling drywall","Remove flooring","Remove doors","Remove trim/moulding","Remove baseboard trim","Asbestos review","Disconnect utilities","General cleanup","Debris removal"];
-    const roomSpecificTasks = {
+    const roomList=["Bathroom","Kitchen","Living Room","Bedroom","Dining Room","Home Office","Laundry Room","Garage","Basement","Attic","Patio","Deck","Porch","Hallway","Entryway","Staircase","Exterior Walls","Driveway","Sidewalk","Landscaping Area","Roof"];
+    const standardTasks=["Remove wall drywall","Remove ceiling drywall","Remove flooring","Remove doors","Remove trim/moulding","Remove baseboard trim","Asbestos review","Disconnect utilities","General cleanup","Debris removal"];
+    const roomSpecificTasks={
       "Bathroom":["Remove bathtub","Remove shower pan","Remove vanity/cabinetry","Remove sink and fixtures","Remove toilet","Remove wall tile","Remove floor tile","Remove drywall","Remove insulation","Remove lighting fixtures"],
       "Kitchen":["Remove upper cabinets","Remove base cabinets","Remove countertops","Remove sink and faucet","Remove appliances","Remove backsplash tile","Remove island","Remove range hood","Remove lighting fixtures","Remove plumbing fixtures"],
       "Living Room":["Remove drywall","Remove flooring","Remove baseboards","Remove window trim","Remove doors","Remove built-in shelves","Remove fireplace surround","Remove lighting fixtures","Remove wall coverings","Remove vents"],
@@ -182,13 +184,11 @@
       "Roof":["Remove shingles","Remove underlayment","Remove flashing","Remove gutters","Remove downspouts","Remove vents","Remove skylights","Remove decking","Remove insulation","Remove hardware"]
     };
 
-    function saveRoomPhoto(idx,dataURL){ localStorage.setItem(`room-${idx}-photo`, dataURL); }
+    function saveRoomPhoto(idx,dataURL){ localStorage.setItem(`room-${idx}-photo`,dataURL); }
     function loadRoomPhoto(idx){ return localStorage.getItem(`room-${idx}-photo`); }
     function insertPhotoPreview(idx,dataURL){
       const fs=document.getElementById(`room-${idx}`),
-            img=fs.querySelector('img.room-photo-preview')||(function(){
-              const i=document.createElement('img'); i.className='room-photo-preview'; fs.appendChild(i); return i;
-            })();
+            img=fs.querySelector('img.room-photo-preview')||(function(){const i=document.createElement('img');i.className='room-photo-preview';fs.appendChild(i);return i;})();
       img.src=dataURL;
     }
     function saveCustomTasks(idx){
@@ -199,7 +199,7 @@
           checked:it.querySelector('input[type="checkbox"]').checked,
           disposition:it.querySelector('select').value
         }));
-      localStorage.setItem(`room-${idx}-customTasks`, JSON.stringify(arr));
+      localStorage.setItem(`room-${idx}-customTasks`,JSON.stringify(arr));
     }
     function loadCustomTasks(idx){
       JSON.parse(localStorage.getItem(`room-${idx}-customTasks`)||'[]').forEach(td=>{
@@ -233,8 +233,7 @@
     }
 
     function addCustomTask(idx){
-      const cont=document.getElementById(`tasks-${idx}`),
-            div=document.createElement('div'); div.className='task-item';
+      const cont=document.getElementById(`tasks-${idx}`), div=document.createElement('div'); div.className='task-item';
       const lbl=document.createElement('label'),
             cb=document.createElement('input'); cb.type='checkbox',
             inp=document.createElement('input'); inp.type='text'; inp.placeholder='Custom task'; inp.style.flex='1'; inp.style.marginLeft='8px';
@@ -254,47 +253,49 @@
     document.getElementById('addRoomBtn').addEventListener('click', ()=>{
       const idx=roomCount++;
       const fs=document.createElement('fieldset'); fs.id=`room-${idx}`;
+      // Remove Room button
+      const rbtn=document.createElement('button'); rbtn.type='button'; rbtn.className='remove-room'; rbtn.textContent='Remove Room';
+      rbtn.addEventListener('click', ()=>{
+        fs.remove();
+        roomCount = document.querySelectorAll('#roomsContainer fieldset').length;
+        localStorage.setItem('roomCount', roomCount);
+      });
+      fs.appendChild(rbtn);
       fs.appendChild(Object.assign(document.createElement('legend'),{textContent:`Room ${idx+1}`}));
       const sel=document.createElement('select'); sel.name=`rooms[${idx}][type]`;
       roomList.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;sel.appendChild(o);});
       sel.addEventListener('change',()=>{
-        renderTasks(idx,sel.value); loadCustomTasks(idx);
-        const p=loadRoomPhoto(idx); if(p) insertPhotoPreview(idx,p);
+        renderTasks(idx, sel.value);
+        loadCustomTasks(idx);
+        const p=loadRoomPhoto(idx);
+        if(p) insertPhotoPreview(idx,p);
       });
       fs.appendChild(sel);
       const photo=document.createElement('input'); photo.type='file'; photo.accept='image/*'; photo.capture='environment';
       photo.addEventListener('change',()=>{
         const f=photo.files[0]; if(f){
           const rdr=new FileReader();
-          rdr.onload=e=>{ saveRoomPhoto(idx,e.target.result); insertPhotoPreview(idx,e.target.result); };
+          rdr.onload=e=>{saveRoomPhoto(idx,e.target.result);insertPhotoPreview(idx,e.target.result);};
           rdr.readAsDataURL(f);
         }
       });
       fs.appendChild(photo);
       const tasksDiv=document.createElement('div'); tasksDiv.id=`tasks-${idx}`; fs.appendChild(tasksDiv);
-      renderTasks(idx,roomList[0]);
+      renderTasks(idx, roomList[0]);
       loadCustomTasks(idx);
       const st=loadRoomPhoto(idx); if(st) insertPhotoPreview(idx,st);
       const cbtn=document.createElement('button'); cbtn.type='button'; cbtn.className='btn btn-custom'; cbtn.textContent='+ Custom Task';
-      cbtn.addEventListener('click',()=>{ addCustomTask(idx); saveCustomTasks(idx); });
+      cbtn.addEventListener('click', ()=>{addCustomTask(idx);saveCustomTasks(idx);});
       fs.appendChild(cbtn);
-      // Remove Room button
-      const rbtn=document.createElement('button'); rbtn.type='button'; rbtn.className='btn btn-custom'; rbtn.textContent='Remove Room';
-      rbtn.addEventListener('click',()=>{
-        fs.remove();
-        roomCount = document.querySelectorAll('#roomsContainer fieldset').length;
-        localStorage.setItem('roomCount', roomCount);
-      });
-      fs.appendChild(rbtn);
       document.getElementById('roomsContainer').appendChild(fs);
       localStorage.setItem('roomCount', roomCount);
     });
 
     // ---- Geolocation ----
     document.getElementById('captureLocationBtn').addEventListener('click', ()=>{
-      if(!navigator.geolocation){ alert('Geolocation not supported'); return; }
+      if(!navigator.geolocation){alert('Geolocation not supported');return;}
       navigator.geolocation.getCurrentPosition(pos=>{
-        document.getElementById('siteLocationDisplay').textContent = `Latitude: ${pos.coords.latitude.toFixed(6)}, Longitude: ${pos.coords.longitude.toFixed(6)}`;
+        document.getElementById('siteLocationDisplay').textContent=`Latitude: ${pos.coords.latitude.toFixed(6)}, Longitude: ${pos.coords.longitude.toFixed(6)}`;
       }, err=>alert('Unable to retrieve location: '+err.message));
     });
 
@@ -303,7 +304,7 @@
     const cn=localStorage.getItem('clientName'); if(cn) document.getElementById('clientName').value=cn;
     const rc=+localStorage.getItem('roomCount')||0;
     for(let i=0;i<rc;i++) document.getElementById('addRoomBtn').click();
-    window.addEventListener('beforeunload',()=>{
+    window.addEventListener('beforeunload', ()=>{
       localStorage.setItem('siteAddress', document.getElementById('siteAddress').value);
       localStorage.setItem('clientName', document.getElementById('clientName').value);
     });
@@ -332,7 +333,7 @@
       overlay.appendChild(modal); document.body.appendChild(overlay);
       document.getElementById('closeWOModal').onclick = ()=> overlay.remove();
 
-      // Accordion sections
+      // Accordion
       [['Site Conditions','siteConditionsList'],['Site Security','siteSecurityList'],['Special Client Requests','specialRequestsList']].forEach(([label,id])=>{
         const section=document.createElement('div'); section.style.margin='10px 0';
         const btn=document.createElement('button'); Object.assign(btn.style,{width:'100%',textAlign:'left',padding:'10px',background:'#f7f7f7',border:'1px solid #ccc',borderRadius:'4px',cursor:'pointer'}); btn.textContent=label;
@@ -343,7 +344,7 @@
             const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=true;
             row.append(cb,' '+chk.value);
             const note=document.getElementById(`${id}-note-${chk.id.split('-').pop()}`).value;
-            if(note){ const p=document.createElement('p'); p.textContent='Note: '+note; p.style.marginLeft='24px'; p.style.color='#555'; row.appendChild(p); }
+            if(note){ const p=document.createElement('p'); p.textContent='Note: '+note; p.style.marginLeft='24px'; p.style.color='#555'; row.appendChild(p);}
             content.appendChild(row);
           }
         });
@@ -351,7 +352,7 @@
         section.append(btn,content); modal.querySelector('#accordionSectionContainer').appendChild(section);
       });
 
-      // Room tasks
+      // Room Tasks
       modal.querySelectorAll('#roomsContainer fieldset').forEach(fs=>{
         const nm=fs.querySelector('select').value;
         const items=Array.from(fs.querySelectorAll('.task-item')).filter(it=>it.querySelector('input[type="checkbox"]').checked);
@@ -366,9 +367,10 @@
           const disp=it.querySelector('select')?.value||'';
           li.textContent=`${lbl} — ${disp}`;
           const note=it.querySelector('textarea')?.value;
-          if(note){ const p=document.createElement('p'); p.textContent='Note: '+note; p.style.marginLeft='12px'; p.style.color='#555'; li.appendChild(p); }
+          if(note){ const p=document.createElement('p'); p.textContent='Note: '+note; p.style.marginLeft='12px'; p.style.color='#555'; li.appendChild(p);}
           ul.appendChild(li);
         });
+        // Photo
         const ip=fs.querySelector('input[type="file"]');
         if(ip&&ip.files[0]){
           const rdr=new FileReader();
@@ -380,7 +382,7 @@
         sec.appendChild(ul); modal.querySelector('#roomTasksContainer').appendChild(sec);
       });
 
-      // Drag & drop
+      // Drag & Drop
       modal.querySelectorAll('.sortable-tasks').forEach(ul=>{
         let dragEl=null;
         ul.addEventListener('dragstart',e=>{dragEl=e.target; e.dataTransfer.effectAllowed='move';});
@@ -394,17 +396,17 @@
         });
       });
 
-      // Modal signature
-      const modalPad = new SignaturePad(modal.querySelector('#woSigCanvas'));
+      // Modal Signature
+      const modalPad=new SignaturePad(modal.querySelector('#woSigCanvas'));
 
-      // PDF export
+      // PDF Export
       modal.querySelector('#woPdfBtn').addEventListener('click', ()=>{
         html2canvas(modal,{scale:2,backgroundColor:'#fff'}).then(c=>{
           const link=document.createElement('a'); link.download='Work_Order.pdf'; link.href=c.toDataURL('image/png'); link.click();
         });
       });
 
-      // JPG export
+      // JPG Export
       modal.querySelector('#woJpgBtn').addEventListener('click', ()=>{
         html2canvas(modal,{scale:2,backgroundColor:'#fff'}).then(c=>{
           const link=document.createElement('a'); link.download='Work_Order.jpg'; link.href=c.toDataURL('image/jpeg',0.95); link.click();
@@ -413,8 +415,7 @@
 
       // Email
       modal.querySelector('#woEmailBtn').addEventListener('click', ()=>{
-        let body='';
-        modal.querySelectorAll('input[type="checkbox"]:checked').forEach(cb=>{ body+=cb.parentElement.textContent.trim()+'\n'; });
+        let body=''; modal.querySelectorAll('input[type="checkbox"]:checked').forEach(cb=>{ body+=cb.parentElement.textContent.trim()+'\n'; });
         const nm=modal.querySelector('#woSignName').value, dt=modal.querySelector('#woSignDate').value;
         body+=`\nSigned by: ${nm} on ${dt}`;
         window.location.href=`mailto:?subject=Work Order Checklist&body=${encodeURIComponent(body)}`;
