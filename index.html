@@ -32,7 +32,9 @@
     .footer { text-align:center; padding:12px; font-size:0.85rem; color:#666; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.6/dist/signature_pad.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.6/dist/signature_pad.umd.min.js"></script>
+
 </head>
 <body>
   <header class="header">
@@ -72,375 +74,360 @@
   <div class="footer">&copy; 2025 Kamloops Builders • All rights reserved</div>
 
   <script>
-    // Timestamp
-    document.getElementById('formTimestamp').textContent = new Date().toLocaleString();
+// Entire form logic wrapped in DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+  // ===== AUTO-TIMESTAMP =====
+  document.getElementById('formTimestamp').textContent = new Date().toLocaleString();
 
-    // Signature logic
-    const sigPads = [], peopleTypes = ["Project Manager","Designer","Client"];
-    let personnelCount = 0;
-    function updateSaveBtn(){
-      const btn = document.getElementById('saveJpgBtn');
-      btn.style.display = (sigPads.length>0 && sigPads.every(p=>!p.isEmpty()))?'block':'none';
-    }
-    document.getElementById('addPersonnelBtn').addEventListener('click', ()=>{
-      const idx = personnelCount++;
-      const pc = document.getElementById('personnelContainer');
-      const div = document.createElement('div'); div.className='personnel-item';
-      div.innerHTML = `<select name="personnel[${idx}][role]">${peopleTypes.map(pt=>`<option>${pt}</option>`).join('')}</select>
-        <input type="text" name="personnel[${idx}][name]" placeholder="Name">
-        <input type="tel" name="personnel[${idx}][phone]" placeholder="Phone">`;
-      pc.appendChild(div);
+  // ===== SIGNATURE PADS SETUP =====
+  window.sigPads = [];
+  const peopleTypes = ["Project Manager","Designer","Client"];
+  let personnelCount = 0;
 
-      const sigDiv = document.createElement('div'); sigDiv.className='sig-field';
-      sigDiv.innerHTML = `<label>Signature ${idx+1}:</label>
-        <canvas id="sigCanvas_${idx}" width="400" height="120"></canvas>
-        <button type="button" id="clearSig_${idx}">Clear</button>`;
-      document.getElementById('signatureContainer').appendChild(sigDiv);
+  function updateSaveBtn() {
+    const btn = document.getElementById('saveJpgBtn');
+    // show only if at least one pad and all have ink
+    btn.style.display = (sigPads.length && sigPads.every(p=>!p.isEmpty())) ? 'block' : 'none';
+  }
 
-      const canvas = document.getElementById(`sigCanvas_${idx}`);
-      const pad = new SignaturePad(canvas, { backgroundColor:'rgba(255,255,255,0)' });
-      sigPads.push(pad);
-      document.getElementById(`clearSig_${idx}`).addEventListener('click', ()=>{pad.clear(); updateSaveBtn();});
-      canvas.addEventListener('mouseup', updateSaveBtn);
-      canvas.addEventListener('touchend', updateSaveBtn);
-      updateSaveBtn();
+  // Add Personnel + inline signature pad
+  document.getElementById('addPersonnelBtn').addEventListener('click', () => {
+    const idx = personnelCount++;
+    // Create personnel row
+    const container = document.getElementById('personnelContainer');
+    const divP = document.createElement('div'); divP.className = 'personnel-item';
+    const sel = document.createElement('select'); sel.name = `personnel[${idx}][role]`;
+    peopleTypes.forEach(pt=>{
+      const opt = document.createElement('option'); opt.value=pt; opt.textContent=pt; sel.appendChild(opt);
     });
+    const inName = document.createElement('input'); inName.type='text'; inName.name=`personnel[${idx}][name]`; inName.placeholder='Name';
+    const inPhone = document.createElement('input'); inPhone.type='tel'; inPhone.name=`personnel[${idx}][phone]`; inPhone.placeholder='Phone';
+    divP.append(sel,inName,inPhone);
+    container.appendChild(divP);
 
-    // Save form as JPEG
-    document.getElementById('saveJpgBtn').addEventListener('click', ()=>{
-      html2canvas(document.getElementById('mainContainer'), { scale:2, backgroundColor:'#fff' })
-      .then(canvas=>{
+    // Signature field
+    const sigDiv = document.createElement('div'); sigDiv.className='sig-field';
+    sigDiv.innerHTML = `
+      <label>Signature ${idx+1}:</label>
+      <canvas id="sigCanvas_${idx}" width="400" height="120"></canvas>
+      <button type="button" id="clearSig_${idx}">Clear</button>
+    `;
+    document.getElementById('signatureContainer').appendChild(sigDiv);
+
+    const canvas = document.getElementById(`sigCanvas_${idx}`);
+    const pad = new SignaturePad(canvas, {backgroundColor:'rgba(255,255,255,0)'});
+    window.sigPads.push(pad);
+
+    // Clear & update logic
+    document.getElementById(`clearSig_${idx}`).addEventListener('click', () => { pad.clear(); updateSaveBtn(); });
+    canvas.addEventListener('mouseup', updateSaveBtn);
+    canvas.addEventListener('touchend', updateSaveBtn);
+    updateSaveBtn();
+  });
+
+  // ===== JPEG EXPORT BUTTON =====
+  document.getElementById('saveJpgBtn').addEventListener('click', () => {
+    html2canvas(document.getElementById('mainContainer'), {scale:2, backgroundColor:'#fff'})
+      .then(canvas => {
         const link = document.createElement('a');
         link.download = 'Demolition_Walkthrough.jpg';
         link.href = canvas.toDataURL('image/jpeg',0.95);
         link.click();
       });
-    });
-
-    // Checklist gen
-    function generateChecklist(id, opts){
-      const c = document.getElementById(id);
-      opts.forEach((opt,i)=>{
-        const d = document.createElement('div'); d.className='checklist-item';
-        const chk = document.createElement('input'); chk.type='checkbox'; chk.id=`${id}-chk-${i}`; chk.value=opt;
-        const lbl = document.createElement('label'); lbl.htmlFor=chk.id; lbl.textContent=opt;
-        const note = document.createElement('input'); note.type='text'; note.placeholder='Notes (optional)'; note.className='note-input'; note.id=`${id}-note-${i}`;
-        chk.addEventListener('change', ()=>note.style.display=chk.checked?'block':'none');
-        d.append(chk,lbl,note); c.append(d);
-      });
-    }
-    const siteConditionsOptions=["Site access restrictions","Ground conditions (muddy/rocky)","Water accumulation","Overhead hazards","Confined space","Noise sensitive area","Dust control measures","Traffic control required","Environmental protection zones","Asbestos identified","Lead paint identified","High wind exposure","Sloped terrain","Restricted working hours","Weather forecast monitoring"];
-    const siteSecurityOptions=["Perimeter fencing","Lockable gates","Warning signage","CCTV surveillance","Temporary lighting","Security guards","Access logs","Alarm systems","Fire watch","Visitor log","Key control","Lockout/tagout","Exit signage","Barriers"];
-    const specialRequestsOptions=["Salvage materials","Furniture protection","Debris staging","Separate waste streams","Client liaison","Restricted hours","Noise mitigation","Dust suppression","Landscaping protect","Structure protect","Third party coord","Photo documentation"];
-    generateChecklist('siteConditionsList', siteConditionsOptions);
-    generateChecklist('siteSecurityList', siteSecurityOptions);
-    generateChecklist('specialRequestsList', specialRequestsOptions);
-
-    // Room/task logic
-    const roomList=["Bathroom","Kitchen","Living Room","Bedroom","Dining Room","Home Office","Laundry Room","Garage","Basement","Attic","Patio","Deck","Porch","Hallway","Entryway","Staircase","Exterior Walls","Driveway","Sidewalk","Landscaping Area","Roof"];
-    const standardTasks=["Remove wall drywall","Remove ceiling drywall","Remove flooring","Remove doors","Remove trim/moulding","Remove baseboard trim","Asbestos review","Disconnect utilities","General cleanup","Debris removal"];
-    const roomSpecificTasks={/* ...same as your original object... */};
-
-    function renderTasks(idx,type){
-      const cont=document.getElementById(`tasks-${idx}`); cont.innerHTML='';
-      const tasks=standardTasks.concat(roomSpecificTasks[type]||[]);
-      tasks.forEach(task=>{
-        const div=document.createElement('div'); div.className='task-item';
-        const lbl=document.createElement('label');
-        const cb=document.createElement('input'); cb.type='checkbox'; cb.value=task;
-        lbl.append(cb,document.createTextNode(task));
-        const ctr=document.createElement('div'); ctr.className='task-controls';
-        const sel=document.createElement('select');
-        ['Dispose','Bring to shop','Store on site'].forEach(opt=>{const o=document.createElement('option');o.value=opt;o.textContent=opt;sel.append(o);});
-        sel.style.display='none';
-        cb.addEventListener('change',()=>sel.style.display=cb.checked?'block':'none');
-        ctr.append(sel); div.append(lbl,ctr); cont.append(div);
-      });
-    }
-
-    function addCustomTask(idx){
-      const container=document.getElementById(`tasks-${idx}`);
-      const div=document.createElement('div'); div.className='task-item';
-      const lbl=document.createElement('label');
-      const cb=document.createElement('input'); cb.type='checkbox';
-      const inp=document.createElement('input'); inp.type='text'; inp.placeholder='Custom task'; inp.style.flex='1'; inp.style.marginLeft='8px';
-      lbl.append(cb,inp);
-      const ctr=document.createElement('div'); ctr.className='task-controls';
-      const sel=document.createElement('select');
-      ['Dispose','Bring to shop','Store on site'].forEach(opt=>{const o=document.createElement('option'); o.value=opt;o.textContent=opt;sel.append(o);});
-      sel.style.display='none';
-      cb.addEventListener('change',()=>sel.style.display=cb.checked?'block':'none');
-      ctr.append(sel); div.append(lbl,ctr); container.append(div);
-    }
-
-    function insertPhotoPreview(idx,dataURL){
-      const fs=document.getElementById(`room-${idx}`);
-      let img=fs.querySelector('img.room-photo-preview');
-      if(!img){ img=document.createElement('img'); img.className='room-photo-preview'; fs.appendChild(img);}
-      img.src=dataURL;
-    }
-
-    function saveRoomPhoto(idx,dataURL){
-      localStorage.setItem(`room-${idx}-photo`, dataURL);
-    }
-
-    function loadRoomPhoto(idx){
-      return localStorage.getItem(`room-${idx}-photo`);
-    }
-
-    function saveCustomTasks(idx){
-      const tasks=Array.from(document.querySelectorAll(`#tasks-${idx} .task-item`))
-        .filter(it=>it.querySelector('input[type="text"]'))
-        .map(it=>({
-          text:it.querySelector('input[type="text"]').value,
-          checked:it.querySelector('input[type="checkbox"]').checked,
-          disposition:it.querySelector('select').value
-        }));
-      localStorage.setItem(`room-${idx}-customTasks`, JSON.stringify(tasks));
-    }
-
-    function loadCustomTasks(idx){
-      const data=JSON.parse(localStorage.getItem(`room-${idx}-customTasks`)||'[]');
-      data.forEach(td=>{
-        addCustomTask(idx);
-        const last=document.querySelector(`#tasks-${idx} .task-item:last-child`);
-        last.querySelector('input[type="text"]').value=td.text;
-        const cb=last.querySelector('input[type="checkbox"]'); cb.checked=td.checked;
-        const sel=last.querySelector('select'); if(td.checked) sel.style.display='block'; sel.value=td.disposition;
-      });
-    }
-
-    let roomCount=0;
-    document.getElementById('addRoomBtn').addEventListener('click',()=>{
-      const idx=roomCount++;
-      const fs=document.createElement('fieldset'); fs.id=`room-${idx}`;
-      const lg=document.createElement('legend'); lg.textContent=`Room ${idx+1}`; fs.appendChild(lg);
-
-      const sel=document.createElement('select'); sel.name=`rooms[${idx}][type]`;
-      roomList.forEach(r=>{ const o=document.createElement('option'); o.value=r; o.textContent=r; sel.appendChild(o); });
-      sel.addEventListener('change',()=>{
-        renderTasks(idx,sel.value);
-        loadCustomTasks(idx);
-        const p=loadRoomPhoto(idx);
-        if(p) insertPhotoPreview(idx,p);
-      });
-      fs.appendChild(sel);
-
-      const photo=document.createElement('input');
-      photo.type='file'; photo.accept='image/*'; photo.capture='environment';
-      photo.addEventListener('change',()=>{
-        const f=photo.files[0]; if(f){
-          const reader=new FileReader(); reader.onload=e=>{
-            saveRoomPhoto(idx,e.target.result);
-            insertPhotoPreview(idx,e.target.result);
-          };
-          reader.readAsDataURL(f);
-        }
-      });
-      fs.appendChild(photo);
-
-      const tasksDiv=document.createElement('div'); tasksDiv.id=`tasks-${idx}`; fs.appendChild(tasksDiv);
-
-      const btn=document.createElement('button');
-      btn.type='button'; btn.className='btn btn-custom'; btn.textContent='+ Custom Task';
-      btn.addEventListener('click',()=>{
-        addCustomTask(idx);
-        saveCustomTasks(idx);
-      });
-      fs.appendChild(btn);
-
-      document.getElementById('roomsContainer').appendChild(fs);
-      renderTasks(idx,roomList[0]);
-      loadCustomTasks(idx);
-      const stored=loadRoomPhoto(idx); if(stored) insertPhotoPreview(idx,stored);
-
-      localStorage.setItem('roomCount', roomCount);
-    });
-
-    document.getElementById('captureLocationBtn').addEventListener('click', ()=>{
-      if(!navigator.geolocation){ alert('Geolocation not supported'); return; }
-      navigator.geolocation.getCurrentPosition(pos=>{
-        document.getElementById('siteLocationDisplay').textContent = `Latitude: ${pos.coords.latitude.toFixed(6)}, Longitude: ${pos.coords.longitude.toFixed(6)}`;
-      }, err => alert('Unable to retrieve location: ' + err.message));
-    });
-
-    window.addEventListener('beforeunload', ()=>{
-      localStorage.setItem('siteAddress', document.getElementById('siteAddress').value);
-      localStorage.setItem('clientName', document.getElementById('clientName').value);
-      localStorage.setItem('roomCount', roomCount);
-      // Save other needed data if required...
-    });
-
-    window.addEventListener('DOMContentLoaded', ()=>{
-      const sa=localStorage.getItem('siteAddress'); if(sa) document.getElementById('siteAddress').value=sa;
-      const cn=localStorage.getItem('clientName'); if(cn) document.getElementById('clientName').value=cn;
-      const rc=+localStorage.getItem('roomCount')||0;
-      for(let i=0;i<rc;i++){ document.getElementById('addRoomBtn').click(); }
-    });
-    // ─── NEW SECTION: WORK ORDER + JPEG EXPORT ───────────────────────────────────
-
-// 1. Rename your “Convert to PDF” button in the HTML:
-//    <button id="toPdfBtn" ...>Convert to PDF</button>
-//    ↓
-//    <button id="saveJpgBtn" class="btn btn-secondary" style="display:none;">Save copy of form</button>
-
-// 2. Add a “Convert to Work Order” button if you haven’t already:
-//    <button id="toWorkOrderBtn" class="btn btn-secondary">Convert to Work Order</button>
-
-// 3. Paste this code at the bottom of your existing <script>:
-
-(function(){
-  // Cache selectors
-  const saveJpgBtn   = document.getElementById('saveJpgBtn');
-  const toWorkOrder  = document.getElementById('toWorkOrderBtn');
-  const sigContainer = document.getElementById('signatureContainer');
-
-  // Utility: Check if **all** signature pads have ink
-  function allSigned() {
-    // Assumes you push each SignaturePad instance into window.sigPads[]
-    return window.sigPads && window.sigPads.length
-      && window.sigPads.every(pad => !pad.isEmpty());
-  }
-
-  // Show/hide the Save JPG button whenever signatures change
-  function toggleSaveButton() {
-    saveJpgBtn.style.display = allSigned() ? 'block' : 'none';
-  }
-  // Wire up signature pads on creation
-  // AFTER your code that creates each pad:
-  //   pad.onEnd = toggleSaveButton;
-  //   pad.addEventListener('endStroke', toggleSaveButton);
-
-  // 4. Hook the saveJpgBtn to export as JPEG
-  saveJpgBtn.addEventListener('click', () => {
-    html2canvas(document.getElementById('mainContainer'), {
-      scale: 2,
-      backgroundColor: '#fff'
-    }).then(canvas => {
-      const link = document.createElement('a');
-      link.download = 'Demolition_Walkthrough.jpg';
-      link.href = canvas.toDataURL('image/jpeg', 0.95);
-      link.click();
-    });
   });
 
-  // ───── WORK ORDER MODAL ─────────────────────────────────────────────────────
-
-  function openWorkOrderModal() {
-    // Prevent duplicates
-    document.getElementById('workOrderModal')?.remove();
-
-    // Create overlay
-    const overlay = document.createElement('div');
-    overlay.id = 'workOrderModal';
-    Object.assign(overlay.style, {
-      position: 'fixed', top:0, left:0, width:'100vw', height:'100vh',
-      background:'rgba(0,0,0,0.6)', zIndex:9999, overflowY:'auto',
-      display:'flex', justifyContent:'center', alignItems:'flex-start', padding:'2em'
+  // ===== CHECKLIST GENERATOR =====
+  function generateChecklist(id, opts) {
+    const c = document.getElementById(id);
+    opts.forEach((opt,i)=>{
+      const div = document.createElement('div'); div.className='checklist-item';
+      const chk = document.createElement('input'); chk.type='checkbox'; chk.id=`${id}-chk-${i}`; chk.value=opt;
+      const lbl = document.createElement('label'); lbl.htmlFor=chk.id; lbl.textContent=opt;
+      const note = document.createElement('input'); note.type='text'; note.placeholder='Notes (optional)';
+      note.className='note-input'; note.id=`${id}-note-${i}`;
+      chk.addEventListener('change', ()=> note.style.display = chk.checked ? 'block' : 'none');
+      div.append(chk,lbl,note);
+      c.appendChild(div);
     });
+  }
 
-    // Create modal container
+  const siteConditionsOptions = [
+    "Site access restrictions","Ground conditions (muddy/rocky)","Water accumulation","Overhead hazards",
+    "Confined space","Noise sensitive area","Dust control measures","Traffic control required",
+    "Environmental protection zones","Asbestos identified","Lead paint identified","High wind exposure",
+    "Sloped terrain","Restricted working hours","Weather forecast monitoring"
+  ];
+  const siteSecurityOptions = [
+    "Perimeter fencing","Lockable gates","Warning signage","CCTV surveillance","Temporary lighting",
+    "Security guards","Access logs","Alarm systems","Fire watch","Visitor log","Key control",
+    "Lockout/tagout","Exit signage","Barriers"
+  ];
+  const specialRequestsOptions = [
+    "Salvage materials","Furniture protection","Debris staging","Separate waste streams","Client liaison",
+    "Restricted hours","Noise mitigation","Dust suppression","Landscaping protect","Structure protect",
+    "Third party coord","Photo documentation"
+  ];
+
+  generateChecklist('siteConditionsList', siteConditionsOptions);
+  generateChecklist('siteSecurityList', siteSecurityOptions);
+  generateChecklist('specialRequestsList', specialRequestsOptions);
+
+  // ===== ROOM & TASK LOGIC =====
+  const roomList = [
+    "Bathroom","Kitchen","Living Room","Bedroom","Dining Room","Home Office","Laundry Room","Garage",
+    "Basement","Attic","Patio","Deck","Porch","Hallway","Entryway","Staircase","Exterior Walls",
+    "Driveway","Sidewalk","Landscaping Area","Roof"
+  ];
+  const standardTasks = [
+    "Remove wall drywall","Remove ceiling drywall","Remove flooring","Remove doors","Remove trim/moulding",
+    "Remove baseboard trim","Asbestos review","Disconnect utilities","General cleanup","Debris removal"
+  ];
+  const roomSpecificTasks = {
+    "Bathroom":["Remove toilet","Remove bathtub/shower","Remove vanity","Remove countertop","Remove sink","Remove mirror","Remove medicine cabinet","Remove tile from walls","Remove tile from floor","Remove plumbing fixtures"],
+    "Kitchen":["Remove cabinets","Remove countertops","Remove sink","Remove faucet","Remove appliances","Remove backsplash tile","Remove lighting fixtures","Remove island","Remove hood","Remove dishwasher"],
+    "Living Room":["Remove drywall","Remove flooring","Remove trim","Remove baseboards","Remove windows","Remove built-in shelves","Remove fireplace","Remove lighting fixtures","Remove wall coverings","Remove vents"],
+    "Bedroom":["Remove drywall","Remove flooring","Remove trim","Remove baseboards","Remove windows","Remove closet shelving","Remove lighting fixtures","Remove built-in furniture","Remove outlets","Remove vents"],
+    "Dining Room":["Remove drywall","Remove flooring","Remove trim","Remove baseboards","Remove lighting fixtures","Remove built-in features","Remove chandelier","Remove paint","Remove curtains","Remove outlets"],
+    "Home Office":["Remove drywall","Remove flooring","Remove trim","Remove baseboards","Remove built-in desks","Remove lighting fixtures","Remove data outlets","Remove shelving","Remove whiteboards","Remove outlets"],
+    "Laundry Room":["Remove washer/dryer","Remove cabinets","Remove sink","Remove plumbing fixtures","Remove flooring","Remove lighting fixtures","Remove ventilation fan","Remove tile","Remove shelving","Remove outlets"],
+    "Garage":["Remove drywall","Remove shelving","Remove cabinets","Remove doors","Remove windows","Remove lighting fixtures","Remove electrical fixtures","Remove insulation","Remove hooks","Remove signage"],
+    "Basement":["Remove drywall","Remove flooring","Remove insulation","Remove trim","Remove lighting fixtures","Remove windows","Remove sump pump cover","Remove tile","Remove shelving","Remove outlets"],
+    "Attic":["Remove insulation","Remove drywall","Remove flooring","Remove vents","Remove lighting fixtures","Remove bracing","Remove panels","Remove wiring","Remove ductwork","Remove hatch"],
+    "Patio":["Remove pavers","Remove decking","Remove railings","Remove lighting fixtures","Remove outdoor furniture","Remove pergola","Remove planters","Remove fixtures","Remove coverings","Remove posts"],
+    "Deck":["Remove deck boards","Remove railings","Remove stairs","Remove lighting fixtures","Remove posts","Remove joists","Remove skirting","Remove hardware","Remove fascia","Remove supports"],
+    "Porch":["Remove flooring","Remove railings","Remove columns","Remove lighting fixtures","Remove door frame","Remove ceiling","Remove trim","Remove steps","Remove fixtures","Remove soffit"],
+    "Hallway":["Remove drywall","Remove flooring","Remove trim","Remove baseboards","Remove lighting fixtures","Remove railings","Remove sconces","Remove outlets","Remove vents","Remove doors"],
+    "Entryway":["Remove flooring","Remove trim","Remove lighting fixtures","Remove closet shelving","Remove doors","Remove hardware","Remove baseboards","Remove outlets","Remove vents","Remove paint"],
+    "Staircase":["Remove treads","Remove risers","Remove handrails","Remove balusters","Remove lighting fixtures","Remove carpet","Remove hardware","Remove trim","Remove landing","Remove fixture"],
+    "Exterior Walls":["Remove cladding","Remove siding","Remove fascia","Remove soffit","Remove windows","Remove trim","Remove vents","Remove fixtures","Remove caulking","Remove flashings"],
+    "Driveway":["Remove concrete","Remove asphalt","Remove pavers","Remove sealant","Remove markings","Remove curbing","Remove debris","Remove expansion joints","Remove edging","Remove gravel"],
+    "Sidewalk":["Remove concrete","Remove pavers","Remove curb","Remove sealant","Remove debris","Remove expansion joints","Remove edging","Remove fixtures","Remove paint","Remove weeds"],
+    "Landscaping Area":["Remove plants","Remove mulch","Remove edging","Remove debris","Remove topsoil","Remove pipes","Remove fences","Remove planters","Remove irrigation","Remove fixtures"],
+    "Roof":["Remove shingles","Remove underlayment","Remove flashing","Remove gutters","Remove downspouts","Remove vents","Remove skylights","Remove decking","Remove hardware","Remove insulation"]
+  };
+
+  // Helpers: photo & task persistence
+  function saveRoomPhoto(idx,dataURL){ localStorage.setItem(`room-${idx}-photo`,dataURL); }
+  function loadRoomPhoto(idx){ return localStorage.getItem(`room-${idx}-photo`); }
+  function insertPhotoPreview(idx,dataURL){
+    const fs=document.getElementById(`room-${idx}`), img=fs.querySelector('img.room-photo-preview') || (()=>{ const i=document.createElement('img'); i.className='room-photo-preview'; fs.appendChild(i); return i; })();
+    img.src=dataURL;
+  }
+  function saveCustomTasks(idx){
+    const arr=Array.from(document.querySelectorAll(`#tasks-${idx} .task-item`))
+      .filter(it=>it.querySelector('input[type="text"]'))
+      .map(it=>({
+        text:it.querySelector('input[type="text"]').value,
+        checked:it.querySelector('input[type="checkbox"]').checked,
+        disposition:it.querySelector('select').value
+      }));
+    localStorage.setItem(`room-${idx}-customTasks`, JSON.stringify(arr));
+  }
+  function loadCustomTasks(idx){
+    JSON.parse(localStorage.getItem(`room-${idx}-customTasks`)||'[]').forEach(td=>{
+      addCustomTask(idx);
+      const last=document.querySelector(`#tasks-${idx} .task-item:last-child`);
+      last.querySelector('input[type="text"]').value=td.text;
+      last.querySelector('input[type="checkbox"]').checked=td.checked;
+      const sel=last.querySelector('select');
+      if(td.checked) sel.style.display='block';
+      sel.value=td.disposition;
+    });
+  }
+
+  // Render standard + specific tasks
+  function renderTasks(idx,type){
+    const cont=document.getElementById(`tasks-${idx}`); cont.innerHTML='';
+    const tasks=standardTasks.concat(roomSpecificTasks[type]||[]);
+    tasks.forEach(task=>{
+      const div=document.createElement('div'); div.className='task-item';
+      const lbl=document.createElement('label');
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.value=task;
+      lbl.append(cb,document.createTextNode(task));
+      const ctr=document.createElement('div'); ctr.className='task-controls';
+      const sel=document.createElement('select');
+      ['Dispose','Bring to shop','Store on site'].forEach(opt=>{
+        const o=document.createElement('option'); o.value=opt; o.textContent=opt; sel.appendChild(o);
+      });
+      sel.style.display='none';
+      cb.addEventListener('change',()=>sel.style.display=cb.checked?'block':'none');
+      ctr.appendChild(sel); div.append(lbl,ctr);
+      cont.append(div);
+    });
+  }
+
+  function addCustomTask(idx){
+    const cont=document.getElementById(`tasks-${idx}`);
+    const div=document.createElement('div'); div.className='task-item';
+    const lbl=document.createElement('label');
+    const cb=document.createElement('input'); cb.type='checkbox';
+    const inp=document.createElement('input'); inp.type='text'; inp.placeholder='Custom task'; inp.style.flex='1'; inp.style.marginLeft='8px';
+    lbl.append(cb,inp);
+    const ctr=document.createElement('div'); ctr.className='task-controls';
+    const sel=document.createElement('select');
+    ['Dispose','Bring to shop','Store on site'].forEach(opt=>{
+      const o=document.createElement('option'); o.value=opt; o.textContent=opt; sel.appendChild(o);
+    });
+    sel.style.display='none';
+    cb.addEventListener('change',()=>sel.style.display=cb.checked?'block':'none');
+    inp.addEventListener('input',()=>saveCustomTasks(idx));
+    div.append(lbl,ctr); ctr.appendChild(sel); cont.appendChild(div);
+  }
+
+  // Add Room
+  let roomCount=0;
+  document.getElementById('addRoomBtn').addEventListener('click',()=>{
+    const idx=roomCount++;
+    const fs=document.createElement('fieldset'); fs.id=`room-${idx}`;
+    const lg=document.createElement('legend'); lg.textContent=`Room ${idx+1}`; fs.appendChild(lg);
+
+    const sel=document.createElement('select'); sel.name=`rooms[${idx}][type]`;
+    roomList.forEach(r=>{ const o=document.createElement('option'); o.value=r; o.textContent=r; sel.appendChild(o); });
+    sel.addEventListener('change',()=>{ renderTasks(idx,sel.value); loadCustomTasks(idx); const p=loadRoomPhoto(idx); if(p) insertPhotoPreview(idx,p); });
+    fs.appendChild(sel);
+
+    const photo=document.createElement('input'); photo.type='file'; photo.accept='image/*'; photo.capture='environment';
+    photo.addEventListener('change',()=>{
+      const f=photo.files[0]; if(f){
+        const reader=new FileReader();
+        reader.onload=e=>{ saveRoomPhoto(idx,e.target.result); insertPhotoPreview(idx,e.target.result); };
+        reader.readAsDataURL(f);
+      }
+    });
+    fs.appendChild(photo);
+
+    const tasksDiv=document.createElement('div'); tasksDiv.id=`tasks-${idx}`; fs.appendChild(tasksDiv);
+    const cbtn=document.createElement('button'); cbtn.type='button'; cbtn.className='btn btn-custom'; cbtn.textContent='+ Custom Task';
+    cbtn.addEventListener('click',()=>{ addCustomTask(idx); saveCustomTasks(idx); });
+    fs.appendChild(cbtn);
+
+    document.getElementById('roomsContainer').appendChild(fs);
+    renderTasks(idx,roomList[0]);
+    loadCustomTasks(idx);
+    const st=loadRoomPhoto(idx); if(st) insertPhotoPreview(idx,st);
+
+    localStorage.setItem('roomCount',roomCount);
+  });
+
+  // Geolocation
+  document.getElementById('captureLocationBtn').addEventListener('click',()=>{
+    if(!navigator.geolocation){ alert('Geolocation not supported'); return; }
+    navigator.geolocation.getCurrentPosition(pos=>{
+      document.getElementById('siteLocationDisplay').textContent=
+        `Latitude: ${pos.coords.latitude.toFixed(6)}, Longitude: ${pos.coords.longitude.toFixed(6)}`;
+    }, err=>alert('Unable to retrieve location: '+err.message));
+  });
+
+  // Restore on reload
+  document.getElementById('siteAddress').value = localStorage.getItem('siteAddress')||'';
+  document.getElementById('clientName').value = localStorage.getItem('clientName')||'';
+  const savedRC = +localStorage.getItem('roomCount')||0;
+  for(let i=0;i<savedRC;i++){ document.getElementById('addRoomBtn').click(); }
+
+  // Wipe old storage on unload
+  window.addEventListener('beforeunload', ()=>{
+    localStorage.setItem('siteAddress',document.getElementById('siteAddress').value);
+    localStorage.setItem('clientName',document.getElementById('clientName').value);
+  });
+
+  // ===== WORK ORDER MODAL & EXPORT =====
+  const toWO = document.getElementById('toWorkOrderBtn');
+  toWO.addEventListener('click', ()=> {
+    // build modal overlay
+    const old = document.getElementById('workOrderModal'); if(old) old.remove();
+    const overlay = document.createElement('div'); overlay.id='workOrderModal';
+    Object.assign(overlay.style,{
+      position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.6)',zIndex:9999,
+      display:'flex',justifyContent:'center',alignItems:'flex-start',overflowY:'auto',padding:'2vh'
+    });
     const modal = document.createElement('div');
-    Object.assign(modal.style, {
-      background:'#fff', borderRadius:'8px', maxWidth:'800px', width:'100%',
-      padding:'20px', position:'relative', fontFamily:'Montserrat,sans-serif'
+    Object.assign(modal.style,{background:'#fff',borderRadius:'12px',padding:'20px',maxWidth:'800px',width:'100%'});
+    modal.innerHTML = `
+      <button id="closeWOModal" style="float:right;font-size:1.5em;border:none;background:none;">&times;</button>
+      <h2 style="color:#ff8c00;">Work Order Summary</h2>
+      <div id="accordionSectionContainer"></div>
+      <h3 style="margin-top:20px;">Room Tasks</h3>
+      <div id="roomTasksContainer"></div>
+      <h3 style="margin-top:20px;">Digital Sign-off</h3>
+      <canvas id="woSigCanvas" width="400" height="120" style="border:1px solid #ccc;border-radius:6px;"></canvas>
+      <input type="text" id="woSignName" placeholder="Printed Name" style="width:100%;margin-top:10px;padding:6px;"/>
+      <input type="date" id="woSignDate" style="width:100%;margin-top:6px;padding:6px;"/>
+      <div style="text-align:right;margin-top:20px;">
+        <button id="woPdfBtn" class="btn btn-secondary">Download PDF</button>
+        <button id="woEmailBtn" class="btn btn-primary">Email Checklist</button>
+      </div>`;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Close handler
+    document.getElementById('closeWOModal').onclick = ()=>overlay.remove();
+
+    // Accordion sections
+    [
+      ['Site Conditions','siteConditionsList'],
+      ['Site Security','siteSecurityList'],
+      ['Special Client Requests','specialRequestsList']
+    ].forEach(([title,id])=>{
+      const acc = document.createElement('div'); acc.style.margin='10px 0';
+      const btn=document.createElement('button');
+      Object.assign(btn.style,{width:'100%',textAlign:'left',padding:'10px',background:'#f7f7f7',border:'1px solid #ccc',borderRadius:'4px'});
+      btn.textContent=title;
+      const content=document.createElement('div');
+      Object.assign(content.style,{display:'none',padding:'10px',border:'1px solid #ccc',borderTop:'none'});
+      document.querySelectorAll(`#${id} .checklist-item input[type="checkbox"]`).forEach(chk=>{
+        if(chk.checked){
+          const lbl=chk.nextSibling.textContent.trim();
+          const note=document.getElementById(`${id}-note-${chk.id.split('-').pop()}`).value;
+          const row=document.createElement('div'); row.style.marginBottom='8px';
+          const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=true;
+          row.append(cb,' '+lbl);
+          if(note){ const p=document.createElement('p'); p.textContent='Note: '+note; p.style.marginLeft='24px'; p.style.color='#555'; row.appendChild(p); }
+          content.appendChild(row);
+        }
+      });
+      btn.onclick=()=>content.style.display = content.style.display==='none'?'block':'none';
+      acc.append(btn,content);
+      document.getElementById('accordionSectionContainer').appendChild(acc);
     });
 
-    // Close button
-    const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '&times;';
-    Object.assign(closeBtn.style, { position:'absolute', top:'12px', right:'12px', fontSize:'1.5em', border:'none', background:'none', cursor:'pointer' });
-    closeBtn.onclick = () => overlay.remove();
-    modal.appendChild(closeBtn);
-
-    // Title
-    const title = document.createElement('h2');
-    title.textContent = 'Work Order Summary';
-    title.style.color = '#ff8c00';
-    modal.appendChild(title);
-
-    // Accordion for checklists
-    ['Site Conditions','siteConditionsList','Site Security','siteSecurityList','Special Requests','specialRequestsList']
-      .reduce((acc,cur,i,arr)=>{
-        // pairs: [label,id]
-        if(i%2===0){
-          const label=cur, id=arr[i+1];
-          const section = document.createElement('div');
-          section.style.marginBottom='1em';
-          const btn = document.createElement('button');
-          btn.textContent = label;
-          Object.assign(btn.style,{width:'100%',textAlign:'left',padding:'10px',border:'1px solid #ccc',borderRadius:'4px',background:'#f7f7f7'});
-          const content = document.createElement('div');
-          Object.assign(content.style,{display:'none',padding:'10px',border:'1px solid #ccc',borderTop:'none'});
-          // Populate items
-          document.querySelectorAll(`#${id} input[type=checkbox]`).forEach(chk=>{
-            if(chk.checked){
-              const row = document.createElement('div');
-              const labelEl = document.createElement('label');
-              const innerChk = document.createElement('input');
-              innerChk.type='checkbox'; innerChk.checked=true;
-              labelEl.append(innerChk, ' '+chk.value);
-              row.appendChild(labelEl);
-              const noteEl = document.getElementById(`${id}-note-${chk.id.split('-').pop()}`);
-              if(noteEl && noteEl.value){
-                const p = document.createElement('p');
-                p.textContent = 'Note: '+noteEl.value;
-                p.style.marginLeft='24px'; p.style.color='#555'; p.style.fontSize='0.9em';
-                row.appendChild(p);
-              }
-              content.appendChild(row);
-            }
-          });
-          btn.onclick = ()=>content.style.display = content.style.display==='none'?'block':'none';
-          section.append(btn,content);
-          modal.appendChild(section);
-        }
-      },[]);
-
-    // Room tasks summary
-    const tasksTitle = document.createElement('h3');
-    tasksTitle.textContent = 'Room Tasks';
-    modal.appendChild(tasksTitle);
-
-    document.querySelectorAll('#roomsContainer fieldset').forEach((fs,i)=>{
-      const roomName = fs.querySelector('select').value;
-      const items = Array.from(fs.querySelectorAll('.task-item')).filter(item=>item.querySelector('input[type=checkbox]').checked);
-      if(!items.length) return;
-      const sec = document.createElement('div');
-      const h4 = document.createElement('h4'); h4.textContent = roomName; sec.appendChild(h4);
-      const ul = document.createElement('ul'); ul.className='sortable-tasks'; ul.style.paddingLeft='20px';
-      items.forEach(item=>{
+    // Room tasks
+    document.querySelectorAll('#roomsContainer fieldset').forEach(fs=>{
+      const roomName=fs.querySelector('select').value;
+      const checkedItems=Array.from(fs.querySelectorAll('.task-item'))
+        .filter(it=>it.querySelector('input[type="checkbox"]').checked);
+      if(!checkedItems.length) return;
+      const section=document.createElement('div'); section.style.marginBottom='20px';
+      const h4=document.createElement('h4'); h4.textContent=roomName; section.appendChild(h4);
+      const ul=document.createElement('ul'); ul.className='sortable-tasks'; ul.style.paddingLeft='20px';
+      checkedItems.forEach(it=>{
         const li=document.createElement('li');
-        Object.assign(li.style,{marginBottom:'8px',padding:'6px',border:'1px solid #ccc',borderRadius:'4px',background:'#f9f9f9',cursor:'grab'});
-        const label=item.querySelector('label').textContent.trim();
-        const disp=item.querySelector('select')?.value||'';
-        li.textContent = `${label} — ${disp}`;
-        // Task note
-        const txt=item.querySelector('textarea')?.value;
-        if(txt){
-          const p=document.createElement('p');
-          p.textContent='Note: '+txt; p.style.marginLeft='12px'; p.style.color='#555';
-          li.appendChild(p);
-        }
+        li.setAttribute('draggable','true');
+        Object.assign(li.style,{marginBottom:'10px',padding:'6px',border:'1px solid #ccc',borderRadius:'6px',background:'#f9f9f9',cursor:'grab'});
+        const lbl=it.querySelector('label').textContent.trim();
+        const disp=it.querySelector('select')?.value||'';
+        li.textContent=`${lbl} — ${disp}`;
+        // note inside task
+        const note=it.querySelector('textarea')?.value;
+        if(note){ const p=document.createElement('p'); p.textContent='Note: '+note; p.style.marginLeft='12px'; p.style.color='#555'; li.appendChild(p); }
         ul.appendChild(li);
       });
-      // Photo
-      const photoInput = fs.querySelector('input[type=file]');
-      if(photoInput && photoInput.files[0]){
+      // photo
+      const inp=fs.querySelector('input[type="file"]');
+      if(inp&&inp.files[0]){
         const reader=new FileReader();
         reader.onload=e=>{
           const img=document.createElement('img');
-          img.src=e.target.result; img.style.maxWidth='150px'; img.style.display='block'; img.style.marginTop='10px';
-          sec.appendChild(img);
+          img.src=e.target.result; img.style.maxWidth='150px'; img.style.display='block'; img.style.marginTop='6px';
+          section.appendChild(img);
         };
-        reader.readAsDataURL(photoInput.files[0]);
+        reader.readAsDataURL(inp.files[0]);
       }
-      sec.appendChild(ul);
-      modal.appendChild(sec);
+      section.appendChild(ul);
+      document.getElementById('roomTasksContainer').appendChild(section);
     });
 
-    // Drag & drop in modal
-    modal.querySelectorAll('.sortable-tasks').forEach(ul=>{
+    // Enable drag-drop
+    document.querySelectorAll('.sortable-tasks').forEach(ul=>{
       let dragEl=null;
       ul.addEventListener('dragstart',e=>{ dragEl=e.target; e.dataTransfer.effectAllowed='move'; });
       ul.addEventListener('dragover',e=>{
@@ -454,56 +441,29 @@
       });
     });
 
-    // Signature pad + sign-off inside modal
-    const signH3=document.createElement('h3'); signH3.textContent='Digital Sign-off'; modal.appendChild(signH3);
-    const canvas=document.createElement('canvas'); canvas.id='modalSigCanvas'; canvas.width=400; canvas.height=120;
-    Object.assign(canvas.style,{border:'1px solid #ccc',borderRadius:'6px',display:'block'});
-    modal.appendChild(canvas);
-    const nameInput=document.createElement('input'); nameInput.placeholder='Printed Name'; nameInput.style.margin='8px 0'; modal.appendChild(nameInput);
-    const dateInput=document.createElement('input'); dateInput.type='date'; dateInput.style.marginBottom='12px'; modal.appendChild(dateInput);
-    const sigPadModal = new SignaturePad(canvas);
+    // Modal signature pad
+    const modalPad = new SignaturePad(document.getElementById('woSigCanvas'));
 
-    // Export & email buttons
-    const btnWrap=document.createElement('div'); btnWrap.style.textAlign='right'; btnWrap.style.marginTop='20px';
-    const pdfBtn=document.createElement('button'); pdfBtn.className='btn btn-secondary'; pdfBtn.textContent='Download PDF';
-    const emailBtn=document.createElement('button'); emailBtn.className='btn btn-primary'; emailBtn.textContent='Email Checklist';
-    btnWrap.append(emailBtn,pdfBtn); modal.appendChild(btnWrap);
-
-    // PDF export of modal
-    pdfBtn.addEventListener('click',()=>{
+    // PDF export
+    document.getElementById('woPdfBtn').addEventListener('click',()=>{
       html2canvas(modal,{scale:2,backgroundColor:'#fff'}).then(c=>{
-        const link=document.createElement('a');
-        link.download='Work_Order.pdf'; link.href=c.toDataURL('image/png');
-        link.click();
+        const link=document.createElement('a'); link.download='Work_Order.pdf'; link.href=c.toDataURL('image/png'); link.click();
       });
     });
 
     // Email summary
-    emailBtn.addEventListener('click',()=>{
+    document.getElementById('woEmailBtn').addEventListener('click',()=>{
       let body='';
-      modal.querySelectorAll('input[type=checkbox]:checked').forEach(cb=>{
-        body += cb.parentElement.textContent.trim() + '\n';
+      overlay.querySelectorAll('input[type="checkbox"]:checked').forEach(cb=>{
+        body+=cb.parentElement.textContent.trim()+'\n';
       });
-      // Include modal signature
-      const sigURL = sigPadModal.toDataURL();
-      // Note: embedding images in mailto is not widely supported; include signature name/date
-      body += `\nSigned by: ${nameInput.value} on ${dateInput.value}\n`;
-      window.location.href = `mailto:?subject=Work Order%20Checklist&body=${encodeURIComponent(body)}`;
+      const nm=document.getElementById('woSignName').value;
+      const dt=document.getElementById('woSignDate').value;
+      body+=`\nSigned by: ${nm} on ${dt}`;
+      window.location.href=`mailto:?subject=Work Order Checklist&body=${encodeURIComponent(body)}`;
     });
+  });
+</script>
 
-    // Finally, append to DOM
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-  }
-
-  toWorkOrder.addEventListener('click', openWorkOrderModal);
-
-  // Ensure toggleSaveBtn runs when signature pads are created
-  // If you create your signature pads inside addPersonnel logic, call updateSaveBtn() there
-  // and attach pad.onEnd = updateSaveBtn;
-
-})();
-
-  </script>
 </body>
 </html>
